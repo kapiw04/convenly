@@ -1,0 +1,78 @@
+version: "3"
+
+dotenv:
+  - .env
+
+vars:
+  APP_PACKAGE: ./cmd/app
+  BINARY_DIR: bin
+  BINARY_NAME: app
+  BINARY_PATH: "{{.BINARY_DIR}}/{{.BINARY_NAME}}"
+
+tasks:
+  default:
+    desc: Show help information
+    deps:
+      - help
+
+  help:
+    desc: List available tasks
+    silent: true
+    cmds:
+      - |
+        printf "Available tasks:\n"
+        printf "  task fmt           Format Go source files\n"
+        printf "  task tidy          Sync go.mod and go.sum\n"
+        printf "  task test          Run Go unit tests\n"
+        printf "  task build         Build the application binary to %s\n" "{{.BINARY_PATH}}"
+        printf "  task run           Run the compiled application (requires services running)\n"
+        printf "  task clean         Remove build artifacts\n"
+        printf "  task dev:up        Start the Docker development stack\n"
+        printf "  task dev:down      Stop the Docker development stack\n"
+        printf "  task migrate:up    Apply database migrations via Docker\n"
+        printf "  task migrate:down  Roll back the last database migration via Docker\n"
+
+  fmt:
+    desc: Format Go source files
+    cmds:
+      - go fmt ./...
+
+  tidy:
+    desc: Tidy module dependencies
+    cmds:
+      - go mod tidy
+
+  test:
+    desc: Run all Go tests
+    cmds:
+      - go test ./...
+
+  build:
+    desc: Build the application binary
+    deps:
+      - fmt
+    cmds:
+      - mkdir -p {{.BINARY_DIR}}
+      - go build -o {{.BINARY_PATH}} {{.APP_PACKAGE}}
+
+  run:
+    desc: Run the built application (expects database connectivity)
+    deps:
+      - build
+    cmds:
+      - ./{{.BINARY_PATH}}
+
+  clean:
+    desc: Remove build artifacts
+    cmds:
+      - rm -rf {{.BINARY_DIR}}
+
+  "dev:up":
+    desc: Start the Docker development stack (db, migrations, backend)
+    cmds:
+      - docker compose up --build backend
+
+  "dev:down":
+    desc: Stop the Docker stack and remove containers
+    cmds:
+      - docker compose down

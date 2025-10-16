@@ -1,0 +1,7 @@
+.git
+**/*.log
+bin/
+dist/
+node_modules/
+.tmp/
+secrets/
