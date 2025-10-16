@@ -29,8 +29,6 @@ tasks:
         printf "  task clean         Remove build artifacts\n"
         printf "  task dev:up        Start the Docker development stack\n"
         printf "  task dev:down      Stop the Docker development stack\n"
-        printf "  task migrate:up    Apply database migrations via Docker\n"
-        printf "  task migrate:down  Roll back the last database migration via Docker\n"
 
   fmt:
     desc: Format Go source files
