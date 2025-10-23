@@ -33,3 +33,9 @@ DB framework: [database/sql](https://pkg.go.dev/database/sql)
    - wyszukiwanie eventów po lokalizacji
    - podanie zainteresowań => możliwość sugerowania eventów w kręgu zainteresowań
    - Komentarze, oceny eventów
+
+## 4. Modele
+ - User{id: uuid, email: str, password hash: str, name: str, role: fk(role), created_at: date}
+ - Role{id: uuid, name}
+ - Event{id: uuid, name: str, desc: str, date: date, long: decimal, lat: decimal, fee: decimal(nullable), organiser: fk(user)}
+ - Tag{id: uuid, name}

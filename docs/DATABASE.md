@@ -21,6 +21,10 @@ postgres://user:password@localhost:5432/database_name?sslmode=disable
 
 ---
 
+## ERD Diagram
+![erd-diagram](../assets/docs/convenly-db.png)
+> Note: Project is not in Work in Progress stage. Not everything is yet implemented. 
+
 ## Schema
 
 ### Users Table
@@ -33,12 +37,22 @@ postgres://user:password@localhost:5432/database_name?sslmode=disable
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `uuid` | UUID | PRIMARY KEY | Unique user identifier |
+| `user_id` | UUID | PRIMARY KEY | Unique user identifier |
 | `email` | TEXT | NOT NULL | User's email address |
+| `password_hash` | TEXT | NOT NULL | Hashed user password |
 | `name` | TEXT | NOT NULL | User's full name |
-| `role` | TEXT | NOT NULL | User role (attendee, host) |
+| `role` | UUID | FOREIGN KEY REFERENCES roles(id) | User's role identifier |
 | `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() | Account creation timestamp |
 
+### Role Table
+**Name:** `roles`
+**Purpose:** Defines user roles within the application.
+
+#### Columns
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `role_id` | UUID | PRIMARY KEY | Unique role identifier |
+| `name` | TEXT | UNIQUE, NOT NULL | Name of the role (e.g., Host, Attendee) |
 
 ## Migrations
 
@@ -53,3 +67,13 @@ XXXXXX_description.{up,down}.sql
 - **Up:** Creates the `users` table
 - **Down:** Drops the `users` table
 - **File:** `000001_create_users_table.up.sql` / `000001_create_users_table.down.sql`
+
+#### Migration: 000002_create_roles_table
+- **Up:** Creates the `roles` table
+- **Down:** Drops the `roles` table
+- **File:** `000002_create_roles_table.up.sql` / `000002_create_roles_table.down.sql`
+
+#### Migration: 000003_add_role_to_user
+- **Up:** Adds foreign key constraint to `users.role` referencing `roles.role_id` with `ON DELETE SET NULL`
+- **Down:** Removes foreign key constraint from `users.role`
+- **File:** `000003_add_role_to_user.up.sql` / `000003_add_role_to_user.down.sql`

@@ -19,16 +19,7 @@ tasks:
     desc: List available tasks
     silent: true
     cmds:
-      - |
-        printf "Available tasks:\n"
-        printf "  task fmt           Format Go source files\n"
-        printf "  task tidy          Sync go.mod and go.sum\n"
-        printf "  task test          Run Go unit tests\n"
-        printf "  task build         Build the application binary to %s\n" "{{.BINARY_PATH}}"
-        printf "  task run           Run the compiled application (requires services running)\n"
-        printf "  task clean         Remove build artifacts\n"
-        printf "  task dev:up        Start the Docker development stack\n"
-        printf "  task dev:down      Stop the Docker development stack\n"
+      - task --list
 
   fmt:
     desc: Format Go source files
@@ -68,9 +59,19 @@ tasks:
   "dev:up":
     desc: Start the Docker development stack (db, migrations, backend)
     cmds:
-      - docker compose up --build backend
+      - docker compose up --build
 
   "dev:down":
     desc: Stop the Docker stack and remove containers
     cmds:
       - docker compose down
+
+  "migrations":
+    desc: Run all migrations
+    cmds:
+      - docker compose run migrate
+
+  "enter-postgres":
+    desc: Enter the Postgres container's psql shell
+    cmds:
+      - docker compose exec db psql -U ${POSTGRES_USER} -d ${POSTGRES_DB}
