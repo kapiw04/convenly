@@ -69,6 +69,7 @@ tasks:
   "migrations":
     desc: Run all migrations
     cmds:
+      - docker compose down -v
       - docker compose run migrate
 
   "enter-postgres":
