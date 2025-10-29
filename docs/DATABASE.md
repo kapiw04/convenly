@@ -23,7 +23,7 @@ postgres://user:password@localhost:5432/database_name?sslmode=disable
 
 ## ERD Diagram
 ![erd-diagram](../assets/docs/convenly-db.png)
-> Note: Project is not in Work in Progress stage. Not everything is yet implemented. 
+> Note: Project is now in Work in Progress stage. Not everything is yet implemented. 
 
 ## Schema
 
