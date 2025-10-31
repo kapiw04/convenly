@@ -15,19 +15,37 @@ Follows the standard Go project layout with clean layered architecture.
 │   ├── app/                     # Business logic layer
 │   │   └── userservice.go       # Use case orchestration
 │   ├── config/                  # Configuration management
-│   ├── domain/                  # Domain layer (entities, interfaces)
-│   │   └── user.go              # Core domain models
+│   ├── domain/                  # Domain layer (entities, interfaces, value objects)
+│   │   ├── security/            # Security-related domain contracts
+│   │   │   └── hasher.go        # Password hashing interface
+│   │   └── user/                # User domain
+│   │       ├── user.go          # User entity and repository interface
+│   │       ├── email.go         # Email value object with validation
+│   │       ├── password.go      # Password value object with validation
+│   │       ├── errors.go        # Domain-specific errors
+│   │       └── mocks/           # Generated mocks for testing
+│   │           └── mock_userrepo.go
 │   └── infra/                   # Infrastructure layer
-│       ├── db/                  # Data access implementations
-│       │   ├── postgresuser.go  # PostgreSQL repository
-│       │   └── migrations/      # Database migrations
-│       ├── http/                # HTTP server & routing
+│       ├── api/                 # HTTP API
 │       │   ├── handlers.go      # HTTP handlers
+│       │   ├── handlers_test.go # Unit tests for handlers
+│       │   ├── request.go       # Request DTOs
 │       │   ├── response.go      # Response formatting
 │       │   ├── router.go        # Route definitions
-│       │   └── server.go        # Server lifecycle
-│       └── log/                 # Logging
-│           └── logger.go        # Centralized logging config
+│       │   ├── server.go        # Server lifecycle
+│       │   └── mocks/           # Generated mocks for testing
+│       ├── db/                  # Data access implementations
+│       │   ├── postgresuser.go  # PostgreSQL repository
+│       │   └── migrations/      # Database migrations (8 migrations)
+│       ├── log/                 # Logging
+│       │   └── logger.go        # Centralized logging config
+│       └── security/            # Security implementations
+│           └── bcrypthasher.go  # Bcrypt password hasher
+├── test/
+│   └── integral/                # Integration tests
+│       ├── pg.go                # PostgreSQL test container setup
+│       ├── registeruser_test.go # User registration integration test
+│       └── tx.go                # Transaction test helpers
 └── go.mod
 ```
 
@@ -42,7 +60,7 @@ Follows the standard Go project layout with clean layered architecture.
 - Services depend on domain interfaces for data access
 
 ### Domain (`internal/domain/`)
-- Core business entities and interfaces
+- Core business entities, value objects, and interfaces
 - Independent from infrastructure and framework code
 - Defines contracts that infrastructure must implement (Repository Pattern)
 
@@ -50,6 +68,10 @@ Follows the standard Go project layout with clean layered architecture.
 - Technical implementations: database, HTTP routing, logging
 - Implements domain interfaces (PostgresUserRepo implements UserRepo)
 - Manages external integrations and framework specifics
+
+### Testing (`test/`)
+- **Unit Tests**: Located alongside implementation files (e.g., `handlers_test.go`)
+- **Integration Tests**: In `test/integral/` directory
 
 ## Technology Stack
 

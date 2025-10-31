@@ -1,4 +1,4 @@
-package http
+package webapi
 
 import (
 	"net/http"
@@ -14,11 +14,13 @@ type Router struct {
 
 func NewRouter(userService *app.UserService) *Router {
 	r := chi.NewRouter()
-	r.Get("/health", HealthHandler)
-	r.NotFound(NotFoundHandler)
-
-	return &Router{
+	router := &Router{
 		UserService: userService,
 		Handler:     r,
 	}
+	r.Get("/health", router.HealthHandler)
+	r.Post("/register", router.RegisterHandler)
+	r.NotFound(router.NotFoundHandler)
+
+	return router
 }

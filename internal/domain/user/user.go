@@ -1,8 +1,14 @@
-package domain
+package user
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/google/uuid"
+)
 
 type Role int
+
+//go:generate mockgen -destination=./mocks/mock_userrepo.go . UserRepo
 
 const (
 	ATTENDEE = iota
@@ -10,15 +16,17 @@ const (
 )
 
 type User struct {
-	UUID  string
-	Name  string
-	Email string
-	Role  Role
+	UUID     uuid.UUID
+	Name     string
+	Email    Email
+	Password Password
+	Role     Role
 }
 
 type UserRepo interface {
 	Save(user *User) error
 	FindByUUID(uuid string) (*User, error)
+	FindByEmail(email string) (*User, error)
 	FindAll() ([]*User, error)
 	DeleteByUUID(uuid string) error
 	Update(user *User) error

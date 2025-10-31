@@ -1,5 +1,5 @@
 ALTER TABLE users
-ADD COLUMN role UUID;
+ADD COLUMN role smallint;
 
 ALTER TABLE users 
 ADD CONSTRAINT users_role_fkey

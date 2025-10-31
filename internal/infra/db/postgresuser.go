@@ -1,48 +1,70 @@
 package db
 
 import (
+	"context"
 	"database/sql"
+	"time"
 
-	"github.com/kapiw04/convenly/internal/domain"
+	"github.com/kapiw04/convenly/internal/domain/security"
+	"github.com/kapiw04/convenly/internal/domain/user"
 )
 
 type PostgresUserRepo struct {
-	db *sql.DB
+	DB     *sql.DB
+	Hasher security.Hasher
 }
 
-// Count implements domain.UserRepo.
+func (r *PostgresUserRepo) FindByEmail(email string) (*user.User, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	query := "SELECT user_id, name, email, role FROM users WHERE users.email = $1"
+	rows, err := r.DB.QueryContext(ctx, query, email)
+	if err != nil {
+		return nil, err
+	}
+	var user user.User
+
+	rows.Next()
+	if err := rows.Scan(&user.UUID, &user.Name, &user.Email, &user.Role); err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
 func (r *PostgresUserRepo) Count() (int, error) {
 	panic("unimplemented")
 }
 
-// DeleteByUUID implements domain.UserRepo.
 func (r *PostgresUserRepo) DeleteByUUID(uuid string) error {
 	panic("unimplemented")
 }
 
-// FindAll implements domain.UserRepo.
-func (r *PostgresUserRepo) FindAll() ([]*domain.User, error) {
+func (r *PostgresUserRepo) FindAll() ([]*user.User, error) {
 	panic("unimplemented")
 }
 
-// FindByUUID implements domain.UserRepo.
-func (r *PostgresUserRepo) FindByUUID(uuid string) (*domain.User, error) {
+func (r *PostgresUserRepo) FindByUUID(uuid string) (*user.User, error) {
 	panic("unimplemented")
 }
 
-// Update implements domain.UserRepo.
-func (r *PostgresUserRepo) Update(user *domain.User) error {
+func (r *PostgresUserRepo) Update(user *user.User) error {
 	panic("unimplemented")
 }
 
-func NewPostgresUserRepo(db *sql.DB) domain.UserRepo {
-	return &PostgresUserRepo{db: db}
+func NewPostgresUserRepo(db *sql.DB, hasher security.Hasher) user.UserRepo {
+	return &PostgresUserRepo{DB: db, Hasher: hasher}
 }
 
-func (r *PostgresUserRepo) Save(user *domain.User) error {
-	query := "INSERT INTO users (UUID, Name, Email, Role) VALUES ($1, $2, $3, $4)"
-	_, err := r.db.Exec(query, user.UUID, user.Name, user.Email, user.Role)
+func (r *PostgresUserRepo) Save(user *user.User) error {
+	passwordHash, err := r.Hasher.Hash(string(user.Password))
+	if err != nil {
+		return err
+	}
+
+	email := string(user.Email)
+	query := "INSERT INTO users (user_id, name, email, password_hash, role) VALUES ($1, $2, $3, $4, $5)"
+	_, err = r.DB.Exec(query, user.UUID, user.Name, email, passwordHash, user.Role)
 	return err
 }
 
-var _ domain.UserRepo = (*PostgresUserRepo)(nil)
+var _ user.UserRepo = (*PostgresUserRepo)(nil)

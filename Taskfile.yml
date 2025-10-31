@@ -6,6 +6,7 @@ dotenv:
 vars:
   APP_PACKAGE: ./cmd/app
   BINARY_DIR: bin
+  ARCHIVES_DIR: archives
   BINARY_NAME: app
   BINARY_PATH: "{{.BINARY_DIR}}/{{.BINARY_NAME}}"
 

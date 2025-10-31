@@ -3,7 +3,7 @@
 ## Prerequisites
 
 ### Required
-- **Go 1.25.3 or higher** - [Download Go](https://go.dev/dl/)
+- **Go 1.24.0 or higher** (toolchain 1.24.6) - [Download Go](https://go.dev/dl/)
 - **Docker and Docker Compose** - [Install Docker](https://docs.docker.com/get-docker/)
 - **PostgreSQL 15+** (or use Docker)
 
@@ -63,9 +63,11 @@ Expected response:
 
 ### Using Task (if installed)
 ```bash
-task build      # Build the application
-task run        # Run the application
-task test       # Run tests
+task build         # Build the application
+task run           # Run the application
+task test          # Run tests
+task migrate-up    # Run database migrations
+task migrate-down  # Rollback migrations
 ```
 
 ### Using Go Directly
@@ -77,8 +79,35 @@ go test ./...
 
 ### Using Docker Compose
 ```bash
-docker compose up -d    # Start services
-docker compose logs -f  # View logs
-docker compose down     # Stop services
-docker compose ps       # List running services
+docker compose up -d       # Start services
+docker compose logs -f     # View logs
+docker compose down        # Stop services
+docker compose ps          # List running services
+docker compose exec db psql -U ${POSTGRES_USER} -d ${POSTGRES_DB}  # Access database
 ```
+
+---
+
+## Running Tests
+
+### Unit Tests
+Unit tests are located alongside the implementation files:
+```bash
+go test ./internal/infra/api -v
+```
+
+### Integration Tests
+Integration tests use testcontainers to spin up real PostgreSQL instances:
+```bash
+go test ./test/integral -v
+```
+
+**Note:** Integration tests require Docker to be running.
+
+### Generate Mocks
+To regenerate mocks for testing:
+```bash
+go generate ./...
+```
+
+This will regenerate mocks using `mockgen` for interfaces marked with `//go:generate` directives.

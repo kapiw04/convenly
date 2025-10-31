@@ -9,8 +9,9 @@ import (
 
 	"github.com/kapiw04/convenly/internal/app"
 	"github.com/kapiw04/convenly/internal/infra/db"
-	"github.com/kapiw04/convenly/internal/infra/http"
 	logger "github.com/kapiw04/convenly/internal/infra/log"
+	"github.com/kapiw04/convenly/internal/infra/security"
+	webapi "github.com/kapiw04/convenly/internal/infra/webapi"
 	_ "github.com/lib/pq"
 )
 
@@ -32,11 +33,12 @@ func main() {
 	}
 	defer postgresDb.Close()
 	slog.Info("Successfully connected to the database")
-	userRepo := db.NewPostgresUserRepo(postgresDb)
+	hasher := &security.BcryptHasher{}
+	userRepo := db.NewPostgresUserRepo(postgresDb, hasher)
 	userService := app.NewUserService(userRepo)
 
-	router := http.NewRouter(userService)
-	server := http.NewServer(":8080", router.Handler)
-	http.Start(server)
-	defer http.Stop(context.Background(), server)
+	router := webapi.NewRouter(userService)
+	server := webapi.NewServer(":8080", router.Handler)
+	webapi.Start(server)
+	defer webapi.Stop(context.Background(), server)
 }
