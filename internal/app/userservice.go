@@ -4,15 +4,17 @@ import (
 	"log/slog"
 
 	"github.com/google/uuid"
+	"github.com/kapiw04/convenly/internal/domain/security"
 	"github.com/kapiw04/convenly/internal/domain/user"
 )
 
 type UserService struct {
 	repo user.UserRepo
+	h    security.Hasher
 }
 
-func NewUserService(repo user.UserRepo) *UserService {
-	return &UserService{repo: repo}
+func NewUserService(repo user.UserRepo, h security.Hasher) *UserService {
+	return &UserService{repo: repo, h: h}
 }
 
 func (s *UserService) Register(name string, rawEmail string, rawPassword string) error {
@@ -26,14 +28,19 @@ func (s *UserService) Register(name string, rawEmail string, rawPassword string)
 		return err
 	}
 
+	passwordHash, err := s.h.Hash(string(password))
+	if err != nil {
+		return err
+	}
+
 	slog.Info("Registering user with id: %s, name: %s, rawEmail: %s", "id", userUUID, "name", name, "email", string(email))
 
 	err = s.repo.Save(&user.User{
-		UUID:     userUUID,
-		Name:     name,
-		Email:    email,
-		Password: password,
-		Role:     user.ATTENDEE,
+		UUID:         userUUID,
+		Name:         name,
+		Email:        email,
+		PasswordHash: passwordHash,
+		Role:         user.ATTENDEE,
 	})
 	if err != nil {
 		slog.Error("Failed to save user: %v", "err", err)

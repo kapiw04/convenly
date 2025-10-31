@@ -5,13 +5,11 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/kapiw04/convenly/internal/domain/security"
 	"github.com/kapiw04/convenly/internal/domain/user"
 )
 
 type PostgresUserRepo struct {
-	DB     *sql.DB
-	Hasher security.Hasher
+	DB *sql.DB
 }
 
 func (r *PostgresUserRepo) FindByEmail(email string) (*user.User, error) {
@@ -51,19 +49,14 @@ func (r *PostgresUserRepo) Update(user *user.User) error {
 	panic("unimplemented")
 }
 
-func NewPostgresUserRepo(db *sql.DB, hasher security.Hasher) user.UserRepo {
-	return &PostgresUserRepo{DB: db, Hasher: hasher}
+func NewPostgresUserRepo(db *sql.DB) user.UserRepo {
+	return &PostgresUserRepo{DB: db}
 }
 
 func (r *PostgresUserRepo) Save(user *user.User) error {
-	passwordHash, err := r.Hasher.Hash(string(user.Password))
-	if err != nil {
-		return err
-	}
-
 	email := string(user.Email)
 	query := "INSERT INTO users (user_id, name, email, password_hash, role) VALUES ($1, $2, $3, $4, $5)"
-	_, err = r.DB.Exec(query, user.UUID, user.Name, email, passwordHash, user.Role)
+	_, err := r.DB.Exec(query, user.UUID, user.Name, email, user.PasswordHash, user.Role)
 	return err
 }
 

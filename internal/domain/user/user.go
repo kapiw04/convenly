@@ -16,11 +16,11 @@ const (
 )
 
 type User struct {
-	UUID     uuid.UUID
-	Name     string
-	Email    Email
-	Password Password
-	Role     Role
+	UUID         uuid.UUID
+	Name         string
+	Email        Email
+	PasswordHash string
+	Role         Role
 }
 
 type UserRepo interface {

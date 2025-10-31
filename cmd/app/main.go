@@ -34,8 +34,8 @@ func main() {
 	defer postgresDb.Close()
 	slog.Info("Successfully connected to the database")
 	hasher := &security.BcryptHasher{}
-	userRepo := db.NewPostgresUserRepo(postgresDb, hasher)
-	userService := app.NewUserService(userRepo)
+	userRepo := db.NewPostgresUserRepo(postgresDb)
+	userService := app.NewUserService(userRepo, hasher)
 
 	router := webapi.NewRouter(userService)
 	server := webapi.NewServer(":8080", router.Handler)
