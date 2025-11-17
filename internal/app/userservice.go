@@ -75,3 +75,7 @@ func (s *UserService) Login(rawEmail string, rawPassword string) (string, error)
 	}
 	return s.sessionRepo.Create(string(email))
 }
+
+func (s *UserService) Logout(sessionId string) error {
+	return s.sessionRepo.Delete(sessionId)
+}

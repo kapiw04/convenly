@@ -51,6 +51,20 @@ func (rt *Router) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	JSONResponse(w, http.StatusOK, map[string]string{"sessionId": sessionId})
 }
 
+func (rt *Router) LogoutHandler(w http.ResponseWriter, r *http.Request) {
+	sessionId := r.Header.Get("Authorization")
+	if sessionId == "" {
+		ErrorResponse(w, http.StatusBadRequest, "missing session ID")
+		return
+	}
+	err := rt.UserService.Logout(sessionId)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "bad request: "+err.Error())
+		return
+	}
+	JSONResponse(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
 func (rt *Router) HealthHandler(w http.ResponseWriter, r *http.Request) {
 	JSONResponse(w, http.StatusOK, map[string]string{"status": "ok"})
 }
