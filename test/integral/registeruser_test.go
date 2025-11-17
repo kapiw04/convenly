@@ -24,7 +24,6 @@ func TestUserRepo_SaveAndGet(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, string(u.Email), "alice@example.com")
 		assert.Equal(t, u.Name, "Alice")
-		assert.Equal(t, len(u.PasswordHash), 0)
 	})
 }
 

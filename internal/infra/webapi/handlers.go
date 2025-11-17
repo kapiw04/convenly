@@ -2,6 +2,7 @@ package webapi
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 )
 
@@ -24,6 +25,30 @@ func (rt *Router) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	JSONResponse(w, http.StatusCreated, map[string]string{"status": "ok"})
+}
+
+func (rt *Router) LoginHandler(w http.ResponseWriter, r *http.Request) {
+	d := json.NewDecoder(r.Body)
+	var loginRequest LoginRequest
+	err := d.Decode(&loginRequest)
+	if err != nil {
+		slog.Error("Failed to decode login request: %v", "err", err)
+		ErrorResponse(w, http.StatusBadRequest, "bad request: "+err.Error())
+		return
+	}
+	if loginRequest.Email == "" || loginRequest.Password == "" {
+		slog.Error("Empty fields in login request")
+		ErrorResponse(w, http.StatusBadRequest, "empty fields")
+		return
+	}
+	sessionId, err := rt.UserService.Login(loginRequest.Email, loginRequest.Password)
+	if err != nil {
+		slog.Error("Login failed: %v", "err", err)
+		ErrorResponse(w, http.StatusBadRequest, "bad request: "+err.Error())
+		return
+	}
+	slog.Info("User logged in successfully: %s", "email", loginRequest.Email)
+	JSONResponse(w, http.StatusOK, map[string]string{"sessionId": sessionId})
 }
 
 func (rt *Router) HealthHandler(w http.ResponseWriter, r *http.Request) {

@@ -9,12 +9,13 @@ import (
 )
 
 type UserService struct {
-	repo user.UserRepo
-	h    security.Hasher
+	userRepo    user.UserRepo
+	sessionRepo user.SessionRepo
+	h           security.Hasher
 }
 
-func NewUserService(repo user.UserRepo, h security.Hasher) *UserService {
-	return &UserService{repo: repo, h: h}
+func NewUserService(repo user.UserRepo, sessionRepo user.SessionRepo, h security.Hasher) *UserService {
+	return &UserService{userRepo: repo, sessionRepo: sessionRepo, h: h}
 }
 
 func (s *UserService) Register(name string, rawEmail string, rawPassword string) error {
@@ -35,7 +36,7 @@ func (s *UserService) Register(name string, rawEmail string, rawPassword string)
 
 	slog.Info("Registering user with id: %s, name: %s, rawEmail: %s", "id", userUUID, "name", name, "email", string(email))
 
-	err = s.repo.Save(&user.User{
+	err = s.userRepo.Save(&user.User{
 		UUID:         userUUID,
 		Name:         name,
 		Email:        email,
@@ -52,5 +53,25 @@ func (s *UserService) Register(name string, rawEmail string, rawPassword string)
 
 func (s *UserService) GetByEmail(email string) (*user.User, error) {
 	slog.Info("Getting user with email: %s", "email", email)
-	return s.repo.FindByEmail(email)
+	return s.userRepo.FindByEmail(email)
+}
+
+func (s *UserService) Login(rawEmail string, rawPassword string) (string, error) {
+	email, err := user.NewEmail(rawEmail)
+	if err != nil {
+		return "", err
+	}
+	password, err := user.NewPassword(rawPassword)
+	if err != nil {
+		return "", err
+	}
+	u, err := s.userRepo.FindByEmail(string(email))
+	if err != nil {
+		return "", err
+	}
+	ok := s.h.Compare(string(password), u.PasswordHash)
+	if !ok {
+		return "", user.ErrInvalidCredentials
+	}
+	return s.sessionRepo.Create(string(email))
 }

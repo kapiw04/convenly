@@ -35,7 +35,8 @@ func main() {
 	slog.Info("Successfully connected to the database")
 	hasher := &security.BcryptHasher{}
 	userRepo := db.NewPostgresUserRepo(postgresDb)
-	userService := app.NewUserService(userRepo, hasher)
+	sessionRepo := db.NewPostgresSessionRepo(postgresDb, userRepo)
+	userService := app.NewUserService(userRepo, sessionRepo, hasher)
 
 	router := webapi.NewRouter(userService)
 	server := webapi.NewServer(":8080", router.Handler)

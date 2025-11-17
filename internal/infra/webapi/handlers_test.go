@@ -22,12 +22,13 @@ func setupMockController(t *testing.T) *gomock.Controller {
 	return ctrl
 }
 
-func setupMockService(t *testing.T, ctrl *gomock.Controller) (*mock_user.MockUserRepo, *mock_security.MockHasher, *app.UserService) {
+func setupMockService(t *testing.T, ctrl *gomock.Controller) (*mock_user.MockUserRepo, *mock_user.MockSessionRepo, *mock_security.MockHasher, *app.UserService) {
 	t.Helper()
-	mockRepo := mock_user.NewMockUserRepo(ctrl)
+	mockUserRepo := mock_user.NewMockUserRepo(ctrl)
+	mockSessionRepo := mock_user.NewMockSessionRepo(ctrl)
 	mockHasher := mock_security.NewMockHasher(ctrl)
-	mockSvc := app.NewUserService(mockRepo, mockHasher)
-	return mockRepo, mockHasher, mockSvc
+	mockSvc := app.NewUserService(mockUserRepo, mockSessionRepo, mockHasher)
+	return mockUserRepo, mockSessionRepo, mockHasher, mockSvc
 }
 
 func setupServer(t *testing.T, srvc *app.UserService) *httptest.Server {
@@ -42,7 +43,7 @@ func setupServer(t *testing.T, srvc *app.UserService) *httptest.Server {
 
 func TestRegister_Success(t *testing.T) {
 	ctrl := setupMockController(t)
-	mockRepo, mockHasher, mockSvc := setupMockService(t, ctrl)
+	mockRepo, _, mockHasher, mockSvc := setupMockService(t, ctrl)
 
 	mockHasher.
 		EXPECT().
@@ -67,7 +68,7 @@ func TestRegister_Success(t *testing.T) {
 
 func TestRegister_EmptyFields(t *testing.T) {
 	ctrl := setupMockController(t)
-	mockRepo, _, mockSvc := setupMockService(t, ctrl)
+	mockRepo, _, _, mockSvc := setupMockService(t, ctrl)
 
 	mockRepo.
 		EXPECT().
@@ -85,7 +86,7 @@ func TestRegister_EmptyFields(t *testing.T) {
 
 func TestRegister_MissingFields(t *testing.T) {
 	ctrl := setupMockController(t)
-	mockRepo, _, mockSvc := setupMockService(t, ctrl)
+	mockRepo, _, _, mockSvc := setupMockService(t, ctrl)
 
 	mockRepo.
 		EXPECT().
@@ -103,7 +104,7 @@ func TestRegister_MissingFields(t *testing.T) {
 
 func TestRegister_InvalidEmail(t *testing.T) {
 	ctrl := setupMockController(t)
-	mockRepo, _, mockSvc := setupMockService(t, ctrl)
+	mockRepo, _, _, mockSvc := setupMockService(t, ctrl)
 
 	mockRepo.
 		EXPECT().
@@ -121,7 +122,7 @@ func TestRegister_InvalidEmail(t *testing.T) {
 
 func TestRegister_WeakPassword(t *testing.T) {
 	ctrl := setupMockController(t)
-	mockRepo, _, mockSvc := setupMockService(t, ctrl)
+	mockRepo, _, _, mockSvc := setupMockService(t, ctrl)
 
 	mockRepo.
 		EXPECT().
@@ -139,7 +140,7 @@ func TestRegister_WeakPassword(t *testing.T) {
 
 func TestRegister_PasswordTooShort(t *testing.T) {
 	ctrl := setupMockController(t)
-	mockRepo, _, mockSvc := setupMockService(t, ctrl)
+	mockRepo, _, _, mockSvc := setupMockService(t, ctrl)
 
 	mockRepo.
 		EXPECT().
@@ -157,7 +158,7 @@ func TestRegister_PasswordTooShort(t *testing.T) {
 
 func TestRegister_PasswordTooLong(t *testing.T) {
 	ctrl := setupMockController(t)
-	mockRepo, _, mockSvc := setupMockService(t, ctrl)
+	mockRepo, _, _, mockSvc := setupMockService(t, ctrl)
 
 	mockRepo.
 		EXPECT().

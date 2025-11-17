@@ -26,5 +26,6 @@ func setupUserService(t *testing.T, sqlDb *sql.DB) *app.UserService {
 	t.Helper()
 	hasher := &security.BcryptHasher{}
 	pgUserRepo := db.NewPostgresUserRepo(sqlDb)
-	return app.NewUserService(pgUserRepo, hasher)
+	pgSessionRepo := &db.PostgresSessionRepo{DB: sqlDb, UserRepo: pgUserRepo}
+	return app.NewUserService(pgUserRepo, pgSessionRepo, hasher)
 }

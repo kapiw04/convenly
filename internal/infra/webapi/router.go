@@ -20,6 +20,7 @@ func NewRouter(userService *app.UserService) *Router {
 	}
 	r.Get("/health", router.HealthHandler)
 	r.Post("/register", router.RegisterHandler)
+	r.Post("/login", router.LoginHandler)
 	r.NotFound(router.NotFoundHandler)
 
 	return router

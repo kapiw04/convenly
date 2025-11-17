@@ -69,3 +69,40 @@ curl -X POST http://localhost:8080/register \
 ```
 
 ---
+
+### User Login
+
+#### `POST /login`
+Authenticates an existing user and returns a session token that can be used for future requests.
+
+**Request Body:**
+```json
+{
+  "email": "alice@example.com",
+  "password": "Secret123!"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `email` | string | Yes | Registered email (case-insensitive) |
+| `password` | string | Yes | Password (same validation as registration) |
+
+
+**Successful Response:**
+```json
+{
+  "sessionId": "<session-token>"
+}
+```
+**Status Code:** `200 OK`
+
+**Example cURL Request:**
+```bash
+curl -X POST http://localhost:8080/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "alice@example.com",
+    "password": "Secret123!"
+  }'
+```

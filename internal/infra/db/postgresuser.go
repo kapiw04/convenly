@@ -15,7 +15,7 @@ type PostgresUserRepo struct {
 func (r *PostgresUserRepo) FindByEmail(email string) (*user.User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	query := "SELECT user_id, name, email, role FROM users WHERE users.email = $1"
+	query := "SELECT user_id, name, email, password_hash, role FROM users WHERE users.email = $1"
 	rows, err := r.DB.QueryContext(ctx, query, email)
 	if err != nil {
 		return nil, err
@@ -23,7 +23,7 @@ func (r *PostgresUserRepo) FindByEmail(email string) (*user.User, error) {
 	var user user.User
 
 	rows.Next()
-	if err := rows.Scan(&user.UUID, &user.Name, &user.Email, &user.Role); err != nil {
+	if err := rows.Scan(&user.UUID, &user.Name, &user.Email, &user.PasswordHash, &user.Role); err != nil {
 		return nil, err
 	}
 	return &user, nil

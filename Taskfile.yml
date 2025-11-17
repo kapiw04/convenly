@@ -52,6 +52,11 @@ tasks:
     cmds:
       - ./{{.BINARY_PATH}}
 
+  generate:
+    desc: Generate mocks
+    cmds:
+      - go generate ./...
+
   clean:
     desc: Remove build artifacts
     cmds:
