@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/kapiw04/convenly/internal/app"
+	"github.com/kapiw04/convenly/internal/domain/user"
 )
 
 type ctxKey string
@@ -32,10 +33,14 @@ func NewRouter(userService *app.UserService, eventService *app.EventService) *Ro
 	r.Post("/login", router.LoginHandler)
 	r.NotFound(router.NotFoundHandler)
 
-	r.Group(func(_r chi.Router) { // Authenticated users only
-		_r.Use(AuthMiddleware(router.UserService))
-		_r.Get("/events", router.ListEventsHandler)
-		_r.Post("/events/add", router.CreateEventHandler)
+	r.Group(func(authR chi.Router) {
+		authR.Use(AuthMiddleware(router.UserService))
+		authR.Get("/events", router.ListEventsHandler)
+
+		authR.Group(func(hostR chi.Router) {
+			hostR.Use(AclMiddleware(user.HOST))
+			hostR.Post("/events/add", router.CreateEventHandler)
+		})
 	})
 
 	return router

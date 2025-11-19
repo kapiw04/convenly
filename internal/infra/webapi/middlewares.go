@@ -14,7 +14,7 @@ func AclMiddleware(requiredRoles ...user.Role) func(next http.Handler) http.Hand
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			role := r.Context().Value(ctxUserRole).(user.Role)
 			if !slices.Contains(requiredRoles, role) {
-				ErrorResponse(w, http.StatusUnauthorized, "unauthorized")
+				ErrorResponse(w, http.StatusForbidden, "forbidden")
 				return
 			}
 			next.ServeHTTP(w, r)

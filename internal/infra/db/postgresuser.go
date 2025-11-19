@@ -59,7 +59,10 @@ func (r *PostgresUserRepo) FindByUUID(uuid string) (*user.User, error) {
 }
 
 func (r *PostgresUserRepo) Update(user *user.User) error {
-	panic("unimplemented")
+	email := string(user.Email)
+	query := "UPDATE users SET name=$1, email=$2, password_hash=$3, role=$4 WHERE user_id=$5"
+	_, err := r.DB.Exec(query, user.Name, email, user.PasswordHash, user.Role, user.UUID)
+	return err
 }
 
 func NewPostgresUserRepo(db *sql.DB) user.UserRepo {

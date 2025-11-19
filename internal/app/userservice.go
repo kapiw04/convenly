@@ -87,3 +87,12 @@ func (s *UserService) GetBySessionId(sessionId string) (*user.User, error) {
 	}
 	return &u, nil
 }
+
+func (s *UserService) PromoteToHost(userId string) error {
+	u, err := s.userRepo.FindByUUID(userId)
+	if err != nil {
+		return err
+	}
+	u.Role = user.HOST
+	return s.userRepo.Update(u)
+}
