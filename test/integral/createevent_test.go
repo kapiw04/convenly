@@ -213,15 +213,6 @@ func TestCreateEvent_WithInvalidSessionID(t *testing.T) {
 	})
 }
 
-func setupAllServices(t *testing.T) (*sql.DB, *app.UserService, *app.EventService, *webapi.Router) {
-	t.Helper()
-	sqlDb := setupDb(t)
-	userSrvc := setupUserService(t, sqlDb)
-	eventSrvc := setupEventService(t, sqlDb)
-	router := webapi.NewRouter(userSrvc, eventSrvc)
-	return sqlDb, userSrvc, eventSrvc, router
-}
-
 func registerAndPromoteHost(t *testing.T, userSrvc *app.UserService, email, password string) {
 	t.Helper()
 	err := userSrvc.Register("Bob", email, password)

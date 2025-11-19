@@ -56,6 +56,11 @@ func (s *UserService) GetByEmail(email string) (*user.User, error) {
 	return s.userRepo.FindByEmail(email)
 }
 
+func (s *UserService) GetByUUID(userId string) (*user.User, error) {
+	slog.Info("Getting user with UUID: %s", "uuid", userId)
+	return s.userRepo.FindByUUID(userId)
+}
+
 func (s *UserService) Login(rawEmail string, rawPassword string) (string, error) {
 	email, err := user.NewEmail(rawEmail)
 	if err != nil {

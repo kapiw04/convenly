@@ -120,6 +120,17 @@ func (rt *Router) ListEventsHandler(w http.ResponseWriter, r *http.Request) {
 	JSONResponse(w, http.StatusOK, events)
 }
 
+func (rt *Router) GetUserInfoHandler(w http.ResponseWriter, r *http.Request) {
+	user, err := rt.UserService.GetByUUID(r.Context().Value(ctxUserId).(string))
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "bad request: "+err.Error())
+		return
+	}
+	user.PasswordHash = ""
+
+	JSONResponse(w, http.StatusOK, user)
+}
+
 func (rt *Router) HealthHandler(w http.ResponseWriter, r *http.Request) {
 	JSONResponse(w, http.StatusOK, map[string]string{"status": "ok"})
 }

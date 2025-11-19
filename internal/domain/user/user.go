@@ -11,16 +11,16 @@ type Role int
 //go:generate mockgen -destination=./mocks/mock_userrepo.go . UserRepo
 
 const (
-	ATTENDEE = iota
+	ATTENDEE Role = iota
 	HOST
 )
 
 type User struct {
-	UUID         uuid.UUID
-	Name         string
-	Email        Email
-	PasswordHash string
-	Role         Role
+	UUID         uuid.UUID `json:"uuid"`
+	Name         string    `json:"name"`
+	Email        Email     `json:"email"`
+	PasswordHash string    `json:"-"`
+	Role         Role      `json:"role"`
 }
 
 type UserRepo interface {

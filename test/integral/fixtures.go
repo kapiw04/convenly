@@ -7,6 +7,7 @@ import (
 	"github.com/kapiw04/convenly/internal/app"
 	"github.com/kapiw04/convenly/internal/infra/db"
 	"github.com/kapiw04/convenly/internal/infra/security"
+	"github.com/kapiw04/convenly/internal/infra/webapi"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -45,4 +46,13 @@ func RegisterAndLoginUser(t *testing.T, userSrvc *app.UserService, name, email, 
 	sessionID, err := userSrvc.Login(email, password)
 	require.NoError(t, err)
 	return sessionID
+}
+
+func setupAllServices(t *testing.T) (*sql.DB, *app.UserService, *app.EventService, *webapi.Router) {
+	t.Helper()
+	sqlDb := setupDb(t)
+	userSrvc := setupUserService(t, sqlDb)
+	eventSrvc := setupEventService(t, sqlDb)
+	router := webapi.NewRouter(userSrvc, eventSrvc)
+	return sqlDb, userSrvc, eventSrvc, router
 }

@@ -36,6 +36,7 @@ func NewRouter(userService *app.UserService, eventService *app.EventService) *Ro
 	r.Group(func(authR chi.Router) {
 		authR.Use(AuthMiddleware(router.UserService))
 		authR.Get("/events", router.ListEventsHandler)
+		authR.Get("/me", router.GetUserInfoHandler)
 
 		authR.Group(func(hostR chi.Router) {
 			hostR.Use(AclMiddleware(user.HOST))
