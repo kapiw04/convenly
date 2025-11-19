@@ -4,6 +4,10 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/kapiw04/convenly/internal/domain/event"
 )
 
 func (rt *Router) RegisterHandler(w http.ResponseWriter, r *http.Request) {
@@ -48,7 +52,14 @@ func (rt *Router) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	slog.Info("User logged in successfully: %s", "email", loginRequest.Email)
-	JSONResponse(w, http.StatusOK, map[string]string{"sessionId": sessionId})
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_id",
+		Quoted:   false,
+		Value:    sessionId,
+		HttpOnly: true,
+		Secure:   true,
+	})
+	JSONResponse(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
 func (rt *Router) LogoutHandler(w http.ResponseWriter, r *http.Request) {
@@ -63,6 +74,50 @@ func (rt *Router) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	JSONResponse(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+func (rt *Router) CreateEventHandler(w http.ResponseWriter, r *http.Request) {
+	d := json.NewDecoder(r.Body)
+	var addEventRequest CreateEventRequest
+	err := d.Decode(&addEventRequest)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "bad request: "+err.Error())
+		return
+	}
+
+	date, err := time.Parse(time.RFC3339, addEventRequest.Date)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "bad request: "+err.Error())
+		return
+	}
+	userId := r.Context().Value(ctxUserId).(string)
+
+	event := &event.Event{
+		EventID:     uuid.New().String(),
+		Name:        addEventRequest.Name,
+		Description: addEventRequest.Description,
+		Date:        date,
+		Latitude:    addEventRequest.Latitude,
+		Longitude:   addEventRequest.Longitude,
+		Fee:         addEventRequest.Fee,
+		OrganizerID: userId,
+	}
+
+	err = rt.EventService.CreateEvent(event)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "bad request: "+err.Error())
+		return
+	}
+	JSONResponse(w, http.StatusCreated, map[string]string{"status": "ok"})
+}
+
+func (rt *Router) ListEventsHandler(w http.ResponseWriter, r *http.Request) {
+	events, err := rt.EventService.GetAllEvents()
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "bad request: "+err.Error())
+		return
+	}
+	JSONResponse(w, http.StatusOK, events)
 }
 
 func (rt *Router) HealthHandler(w http.ResponseWriter, r *http.Request) {

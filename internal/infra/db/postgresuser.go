@@ -42,7 +42,20 @@ func (r *PostgresUserRepo) FindAll() ([]*user.User, error) {
 }
 
 func (r *PostgresUserRepo) FindByUUID(uuid string) (*user.User, error) {
-	panic("unimplemented")
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	query := "SELECT user_id, name, email, password_hash, role FROM users WHERE users.user_id = $1"
+	rows, err := r.DB.QueryContext(ctx, query, uuid)
+	if err != nil {
+		return nil, err
+	}
+	var user user.User
+
+	rows.Next()
+	if err := rows.Scan(&user.UUID, &user.Name, &user.Email, &user.PasswordHash, &user.Role); err != nil {
+		return nil, err
+	}
+	return &user, nil
 }
 
 func (r *PostgresUserRepo) Update(user *user.User) error {

@@ -17,11 +17,12 @@ import (
 
 func TestLogin_Success(t *testing.T) {
 	sqlDb := setupDb(t)
-	srvc := setupUserService(t, sqlDb)
-	router := webapi.NewRouter(srvc)
+	userSrvc := setupUserService(t, sqlDb)
+	eventSrvc := setupEventService(t, sqlDb)
+	router := webapi.NewRouter(userSrvc, eventSrvc)
 
 	WithTx(t, sqlDb, func(t *testing.T, tx *sql.Tx) {
-		err := srvc.Register(
+		err := userSrvc.Register(
 			"Bob",
 			"bob@example.com",
 			"Secret123!",
@@ -46,27 +47,23 @@ func TestLogin_Success(t *testing.T) {
 		var response map[string]string
 		err = json.NewDecoder(w.Body).Decode(&response)
 		require.NoError(t, err)
-
-		assert.Contains(t, response, "sessionId")
-		assert.NotEmpty(t, response["sessionId"])
 	})
 }
 
 func TestLogin_InvalidPassword(t *testing.T) {
 	sqlDb := setupDb(t)
-	srvc := setupUserService(t, sqlDb)
-	router := webapi.NewRouter(srvc)
+	userSrvc := setupUserService(t, sqlDb)
+	eventSrvc := setupEventService(t, sqlDb)
+	router := webapi.NewRouter(userSrvc, eventSrvc)
 
 	WithTx(t, sqlDb, func(t *testing.T, tx *sql.Tx) {
-		// First, register a user
-		err := srvc.Register(
+		err := userSrvc.Register(
 			"Bob",
 			"bob@example.com",
 			"Secret123!",
 		)
 		require.NoError(t, err)
 
-		// Try to login with wrong password
 		loginReq := webapi.LoginRequest{
 			Email:    "bob@example.com",
 			Password: "WrongPassword!",
@@ -86,11 +83,11 @@ func TestLogin_InvalidPassword(t *testing.T) {
 
 func TestLogin_NonExistentUser(t *testing.T) {
 	sqlDb := setupDb(t)
-	srvc := setupUserService(t, sqlDb)
-	router := webapi.NewRouter(srvc)
+	userSrvc := setupUserService(t, sqlDb)
+	eventSrvc := setupEventService(t, sqlDb)
+	router := webapi.NewRouter(userSrvc, eventSrvc)
 
 	WithTx(t, sqlDb, func(t *testing.T, tx *sql.Tx) {
-		// Try to login with a user that doesn't exist
 		loginReq := webapi.LoginRequest{
 			Email:    "nonexistent@example.com",
 			Password: "SomePassword123!",
@@ -110,11 +107,11 @@ func TestLogin_NonExistentUser(t *testing.T) {
 
 func TestLogin_EmptyEmail(t *testing.T) {
 	sqlDb := setupDb(t)
-	srvc := setupUserService(t, sqlDb)
-	router := webapi.NewRouter(srvc)
+	userSrvc := setupUserService(t, sqlDb)
+	eventSrvc := setupEventService(t, sqlDb)
+	router := webapi.NewRouter(userSrvc, eventSrvc)
 
 	WithTx(t, sqlDb, func(t *testing.T, tx *sql.Tx) {
-		// Try to login with empty email
 		loginReq := webapi.LoginRequest{
 			Email:    "",
 			Password: "SomePassword123!",
@@ -141,11 +138,11 @@ func TestLogin_EmptyEmail(t *testing.T) {
 
 func TestLogin_EmptyPassword(t *testing.T) {
 	sqlDb := setupDb(t)
-	srvc := setupUserService(t, sqlDb)
-	router := webapi.NewRouter(srvc)
+	userSrvc := setupUserService(t, sqlDb)
+	eventSrvc := setupEventService(t, sqlDb)
+	router := webapi.NewRouter(userSrvc, eventSrvc)
 
 	WithTx(t, sqlDb, func(t *testing.T, tx *sql.Tx) {
-		// Try to login with empty password
 		loginReq := webapi.LoginRequest{
 			Email:    "bob@example.com",
 			Password: "",
@@ -172,19 +169,18 @@ func TestLogin_EmptyPassword(t *testing.T) {
 
 func TestLogin_CaseInsensitiveEmail(t *testing.T) {
 	sqlDb := setupDb(t)
-	srvc := setupUserService(t, sqlDb)
-	router := webapi.NewRouter(srvc)
+	userSrvc := setupUserService(t, sqlDb)
+	eventSrvc := setupEventService(t, sqlDb)
+	router := webapi.NewRouter(userSrvc, eventSrvc)
 
 	WithTx(t, sqlDb, func(t *testing.T, tx *sql.Tx) {
-		// Register a user
-		err := srvc.Register(
+		err := userSrvc.Register(
 			"Bob",
 			"bob@example.com",
 			"Secret123!",
 		)
 		require.NoError(t, err)
 
-		// Try to login with uppercase email
 		loginReq := webapi.LoginRequest{
 			Email:    "Bob@EXAMPLE.COM",
 			Password: "Secret123!",
@@ -204,26 +200,23 @@ func TestLogin_CaseInsensitiveEmail(t *testing.T) {
 		err = json.NewDecoder(w.Body).Decode(&response)
 		require.NoError(t, err)
 
-		assert.Contains(t, response, "sessionId")
-		assert.NotEmpty(t, response["sessionId"])
 	})
 }
 
 func TestLogin_EmailWithWhitespace(t *testing.T) {
 	sqlDb := setupDb(t)
-	srvc := setupUserService(t, sqlDb)
-	router := webapi.NewRouter(srvc)
+	userSrvc := setupUserService(t, sqlDb)
+	eventSrvc := setupEventService(t, sqlDb)
+	router := webapi.NewRouter(userSrvc, eventSrvc)
 
 	WithTx(t, sqlDb, func(t *testing.T, tx *sql.Tx) {
-		// Register a user
-		err := srvc.Register(
+		err := userSrvc.Register(
 			"Bob",
 			"bob@example.com",
 			"Secret123!",
 		)
 		require.NoError(t, err)
 
-		// Try to login with email that has whitespace
 		loginReq := webapi.LoginRequest{
 			Email:    "  bob@example.com  ",
 			Password: "Secret123!",
@@ -242,19 +235,16 @@ func TestLogin_EmailWithWhitespace(t *testing.T) {
 		var response map[string]string
 		err = json.NewDecoder(w.Body).Decode(&response)
 		require.NoError(t, err)
-
-		assert.Contains(t, response, "sessionId")
-		assert.NotEmpty(t, response["sessionId"])
 	})
 }
 
 func TestLogin_InvalidJSON(t *testing.T) {
 	sqlDb := setupDb(t)
-	srvc := setupUserService(t, sqlDb)
-	router := webapi.NewRouter(srvc)
+	userSrvc := setupUserService(t, sqlDb)
+	eventSrvc := setupEventService(t, sqlDb)
+	router := webapi.NewRouter(userSrvc, eventSrvc)
 
 	WithTx(t, sqlDb, func(t *testing.T, tx *sql.Tx) {
-		// Send invalid JSON
 		body := []byte(`{"email": "bob@example.com", "password":`)
 
 		req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewReader(body))

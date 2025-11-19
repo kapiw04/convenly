@@ -79,3 +79,11 @@ func (s *UserService) Login(rawEmail string, rawPassword string) (string, error)
 func (s *UserService) Logout(sessionId string) error {
 	return s.sessionRepo.Delete(sessionId)
 }
+
+func (s *UserService) GetBySessionId(sessionId string) (*user.User, error) {
+	u, err := s.sessionRepo.Get(sessionId)
+	if err != nil {
+		return nil, err
+	}
+	return &u, nil
+}

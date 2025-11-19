@@ -3,7 +3,8 @@ CREATE TABLE events (
     name TEXT UNIQUE,
     description TEXT,
     date DATE,
-    geolocation POINT,
+    latitude DECIMAL,
+    longitude DECIMAL,
     fee DECIMAL,
-    organiser_id UUID REFERENCES users(user_id) ON DELETE CASCADE
+    organizer_id UUID REFERENCES users(user_id) ON DELETE CASCADE
 );

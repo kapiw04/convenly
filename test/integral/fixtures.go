@@ -8,6 +8,7 @@ import (
 	"github.com/kapiw04/convenly/internal/infra/db"
 	"github.com/kapiw04/convenly/internal/infra/security"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func setupDb(t *testing.T) *sql.DB {
@@ -28,4 +29,20 @@ func setupUserService(t *testing.T, sqlDb *sql.DB) *app.UserService {
 	pgUserRepo := db.NewPostgresUserRepo(sqlDb)
 	pgSessionRepo := &db.PostgresSessionRepo{DB: sqlDb, UserRepo: pgUserRepo}
 	return app.NewUserService(pgUserRepo, pgSessionRepo, hasher)
+}
+
+func setupEventService(t *testing.T, sqlDb *sql.DB) *app.EventService {
+	t.Helper()
+	pgEventRepo := db.NewPostgresEventRepo(sqlDb)
+	return app.NewEventService(pgEventRepo)
+}
+
+func RegisterAndLoginUser(t *testing.T, userSrvc *app.UserService, name, email, password string) string {
+	t.Helper()
+	err := userSrvc.Register(name, email, password)
+	require.NoError(t, err)
+
+	sessionID, err := userSrvc.Login(email, password)
+	require.NoError(t, err)
+	return sessionID
 }

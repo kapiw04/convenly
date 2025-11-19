@@ -40,18 +40,18 @@ func (p *PostgresSessionRepo) Delete(sessionId string) error {
 }
 
 func (p *PostgresSessionRepo) Get(sessionId string) (user.User, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
-	query := "SELECT user_id FROM sessions WHERE session_id = $1"
-
+	query := "SELECT user_id FROM sessions WHERE sessions.session_id = $1"
 	rows, err := p.DB.QueryContext(ctx, query, sessionId)
+
 	if err != nil {
 		return user.User{}, err
 	}
 	var userId string
 
 	rows.Next()
-	if err := rows.Scan(userId); err != nil {
+	if err := rows.Scan(&userId); err != nil {
 		return user.User{}, err
 	}
 	user, err := p.UserRepo.FindByUUID(userId)

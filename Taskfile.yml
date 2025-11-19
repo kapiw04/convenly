@@ -82,3 +82,9 @@ tasks:
     desc: Enter the Postgres container's psql shell
     cmds:
       - docker compose exec db psql -U ${POSTGRES_USER} -d ${POSTGRES_DB}
+
+  "debug-tc-db":
+    desc: Debug testcontainer postgresql
+    cmds:
+      - echo $(./scripts/find_tc_container.sh)
+      - docker exec -it $(docker ps | awk '$2=="postgres" {print $1}') psql -U user -d db
