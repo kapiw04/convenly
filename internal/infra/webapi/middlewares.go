@@ -43,6 +43,7 @@ func AuthMiddleware(srvc *app.UserService) func(next http.Handler) http.Handler 
 				return
 			}
 			ctx := context.WithValue(r.Context(), ctxUserId, user.UUID.String())
+			ctx = context.WithValue(ctx, ctxSessionId, sessionId)
 			ctx = context.WithValue(ctx, ctxUserRole, user.Role)
 
 			slog.Info("Authenticated user", "userId", user.UUID.String(), "role", user.Role)

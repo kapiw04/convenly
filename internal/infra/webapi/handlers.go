@@ -59,11 +59,17 @@ func (rt *Router) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 		Secure:   true,
 	})
-	JSONResponse(w, http.StatusOK, map[string]string{"status": "ok"})
+	user, err := rt.UserService.GetByEmail(loginRequest.Email)
+	if err != nil {
+		slog.Error("Failed to get user after login: %v", "err", err)
+		ErrorResponse(w, http.StatusInternalServerError, "internal server error: "+err.Error())
+		return
+	}
+	JSONResponse(w, http.StatusOK, user)
 }
 
 func (rt *Router) LogoutHandler(w http.ResponseWriter, r *http.Request) {
-	sessionId := r.Header.Get("Authorization")
+	sessionId := r.Context().Value(ctxSessionId).(string)
 	if sessionId == "" {
 		ErrorResponse(w, http.StatusBadRequest, "missing session ID")
 		return
@@ -129,6 +135,16 @@ func (rt *Router) GetUserInfoHandler(w http.ResponseWriter, r *http.Request) {
 	user.PasswordHash = ""
 
 	JSONResponse(w, http.StatusOK, user)
+}
+
+func (rt *Router) BecomeHostHandler(w http.ResponseWriter, r *http.Request) {
+	userId := r.Context().Value(ctxUserId).(string)
+	err := rt.UserService.PromoteToHost(userId)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "bad request: "+err.Error())
+		return
+	}
+	JSONResponse(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
 func (rt *Router) HealthHandler(w http.ResponseWriter, r *http.Request) {

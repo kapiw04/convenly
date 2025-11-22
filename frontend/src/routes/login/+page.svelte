@@ -1,9 +1,10 @@
 <script lang="ts">
-	import { Button } from "$lib/components/ui/button";
-	import * as Card from "$lib/components/ui/card";
-	import { Input } from "$lib/components/ui/input";
-	import { Label } from "$lib/components/ui/label";
-	import * as Alert from "$lib/components/ui/alert";
+	import { Button } from '$lib/components/ui/button';
+	import * as Card from '$lib/components/ui/card';
+	import { Input } from '$lib/components/ui/input';
+	import { Label } from '$lib/components/ui/label';
+	import * as Alert from '$lib/components/ui/alert';
+	import { user } from '$lib/stores/user';
 
 	const api = import.meta.env.VITE_API_URL;
 	let email = $state('');
@@ -20,14 +21,15 @@
 			const response = await fetch(`${api}/api/login`, {
 				method: 'POST',
 				headers: {
-					'Content-Type': 'application/json',
+					'Content-Type': 'application/json'
 				},
 				credentials: 'include',
-				body: JSON.stringify({ email, password }),
+				body: JSON.stringify({ email, password })
 			});
 
 			if (response.ok) {
-				window.location.href = "/events";
+				user.set(await response.json());
+				window.location.href = '/events';
 			} else {
 				const data = await response.json();
 				error = data.message || 'Login failed. Please try again.';
@@ -86,9 +88,7 @@
 		<Card.Footer class="flex flex-col space-y-4">
 			<div class="text-sm text-center text-muted-foreground">
 				Don't have an account?
-				<a href="/register" class="text-primary hover:underline font-medium">
-					Create account
-				</a>
+				<a href="/register" class="text-primary hover:underline font-medium"> Create account </a>
 			</div>
 		</Card.Footer>
 	</Card.Root>

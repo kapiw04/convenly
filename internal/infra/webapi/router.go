@@ -12,8 +12,9 @@ import (
 type ctxKey string
 
 const (
-	ctxUserId   ctxKey = "userId"
-	ctxUserRole ctxKey = "userRole"
+	ctxUserId    ctxKey = "userId"
+	ctxUserRole  ctxKey = "userRole"
+	ctxSessionId ctxKey = "sessionId"
 )
 
 type Router struct {
@@ -39,12 +40,14 @@ func NewRouter(userService *app.UserService, eventService *app.EventService) *Ro
 	r.Get("/api/health", router.HealthHandler)
 	r.Post("/api/register", router.RegisterHandler)
 	r.Post("/api/login", router.LoginHandler)
+	r.Get("/api/events", router.ListEventsHandler)
 	r.NotFound(router.NotFoundHandler)
 
 	r.Group(func(authR chi.Router) {
 		authR.Use(AuthMiddleware(router.UserService))
-		authR.Get("/api/events", router.ListEventsHandler)
 		authR.Get("/api/me", router.GetUserInfoHandler)
+		authR.Post("/api/logout", router.LogoutHandler)
+		authR.Post("/api/become-host", router.BecomeHostHandler)
 
 		authR.Group(func(hostR chi.Router) {
 			hostR.Use(AclMiddleware(user.HOST))

@@ -44,6 +44,8 @@
 		"vite": "^7.2.2"
 	},
 	"dependencies": {
+		"@tabler/icons": "^3.35.0",
+		"@tabler/icons-svelte": "^3.35.0",
 		"mode-watcher": "^1.1.0"
 	}
 }
