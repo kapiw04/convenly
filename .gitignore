@@ -2,3 +2,5 @@
 bin/
 logs
 .vscode
+
+frontend/node_modules

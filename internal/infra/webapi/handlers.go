@@ -53,7 +53,7 @@ func (rt *Router) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	slog.Info("User logged in successfully: %s", "email", loginRequest.Email)
 	http.SetCookie(w, &http.Cookie{
-		Name:     "session_id",
+		Name:     "session-id",
 		Quoted:   false,
 		Value:    sessionId,
 		HttpOnly: true,
@@ -117,7 +117,7 @@ func (rt *Router) ListEventsHandler(w http.ResponseWriter, r *http.Request) {
 		ErrorResponse(w, http.StatusBadRequest, "bad request: "+err.Error())
 		return
 	}
-	JSONResponse(w, http.StatusOK, events)
+	JSONResponseSlice(w, http.StatusOK, events)
 }
 
 func (rt *Router) GetUserInfoHandler(w http.ResponseWriter, r *http.Request) {

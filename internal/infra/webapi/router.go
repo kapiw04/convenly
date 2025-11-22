@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/cors"
 	"github.com/kapiw04/convenly/internal/app"
 	"github.com/kapiw04/convenly/internal/domain/user"
 )
@@ -28,19 +29,26 @@ func NewRouter(userService *app.UserService, eventService *app.EventService) *Ro
 		EventService: eventService,
 		Handler:      r,
 	}
-	r.Get("/health", router.HealthHandler)
-	r.Post("/register", router.RegisterHandler)
-	r.Post("/login", router.LoginHandler)
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:5173", "http://localhost:5174"},
+		AllowCredentials: true,
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Content-Type", "Authorization"},
+	}))
+
+	r.Get("/api/health", router.HealthHandler)
+	r.Post("/api/register", router.RegisterHandler)
+	r.Post("/api/login", router.LoginHandler)
 	r.NotFound(router.NotFoundHandler)
 
 	r.Group(func(authR chi.Router) {
 		authR.Use(AuthMiddleware(router.UserService))
-		authR.Get("/events", router.ListEventsHandler)
-		authR.Get("/me", router.GetUserInfoHandler)
+		authR.Get("/api/events", router.ListEventsHandler)
+		authR.Get("/api/me", router.GetUserInfoHandler)
 
 		authR.Group(func(hostR chi.Router) {
 			hostR.Use(AclMiddleware(user.HOST))
-			hostR.Post("/events/add", router.CreateEventHandler)
+			hostR.Post("/api/events/add", router.CreateEventHandler)
 		})
 	})
 

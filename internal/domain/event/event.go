@@ -3,14 +3,14 @@ package event
 import "time"
 
 type Event struct {
-	EventID     string
-	Name        string
-	Description string
-	Date        time.Time
-	Latitude    float64
-	Longitude   float64
-	Fee         float32
-	OrganizerID string
+	EventID     string    `json:"event_id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	Date        time.Time `json:"date"`
+	Latitude    float64   `json:"latitude"`
+	Longitude   float64   `json:"longitude"`
+	Fee         float32   `json:"fee"`
+	OrganizerID string    `json:"organizer_id"`
 }
 
 type EventRepo interface {
