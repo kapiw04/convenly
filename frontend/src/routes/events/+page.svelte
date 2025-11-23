@@ -1,17 +1,18 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Button } from "$lib/components/ui/button";
-	import * as Card from "$lib/components/ui/card";
-	import { Badge } from "$lib/components/ui/badge";
-	import * as Alert from "$lib/components/ui/alert";
-	import { Separator } from "$lib/components/ui/separator";
+	import { Button } from '$lib/components/ui/button';
+	import * as Card from '$lib/components/ui/card';
+	import { Badge } from '$lib/components/ui/badge';
+	import * as Alert from '$lib/components/ui/alert';
+	import { Separator } from '$lib/components/ui/separator';
+	import { user } from '$lib/stores/user';
 
 	interface Event {
 		name: string;
 		description: string;
 		date: string;
 	}
-	
+
 	const api = import.meta.env.VITE_API_URL;
 	let events = $state<Event[]>([]);
 	let loading = $state(true);
@@ -37,9 +38,9 @@
 
 	function formatDate(dateString: string): string {
 		const date = new Date(dateString);
-		return date.toLocaleDateString('en-US', { 
-			year: 'numeric', 
-			month: 'short', 
+		return date.toLocaleDateString('en-US', {
+			year: 'numeric',
+			month: 'short',
 			day: 'numeric',
 			hour: '2-digit',
 			minute: '2-digit'
@@ -48,6 +49,12 @@
 </script>
 
 <div class="container mx-auto px-4 py-8">
+	{#if $user && $user.role === 1}
+		<div class="mb-6">
+			<Button href="/events/create" size="lg">Create New Event</Button>
+		</div>
+	{/if}
+
 	<div class="mb-10 space-y-3">
 		<h1 class="text-4xl font-bold tracking-tight">Upcoming Events</h1>
 	</div>
@@ -65,9 +72,7 @@
 		<Card.Root class="border-dashed">
 			<Card.Content class="flex flex-col items-center justify-center py-16">
 				<Card.Title class="mb-2">No events available</Card.Title>
-				<Card.Description>
-					Check back later for upcoming events!
-				</Card.Description>
+				<Card.Description>Check back later for upcoming events!</Card.Description>
 			</Card.Content>
 		</Card.Root>
 	{:else}
@@ -95,9 +100,7 @@
 						</div>
 					</Card.Content>
 					<Card.Footer>
-						<Button class="w-full">
-							View Details
-						</Button>
+						<Button class="w-full">View Details</Button>
 					</Card.Footer>
 				</Card.Root>
 			{/each}
