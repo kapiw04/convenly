@@ -81,9 +81,6 @@
 					<a href="/events" class="transition-colors hover:text-foreground/80 text-foreground/60">
 						Events
 					</a>
-					<a href="/" class="transition-colors hover:text-foreground/80 text-foreground/60">
-						About
-					</a>
 				</nav>
 			</div>
 			<div class="flex items-center gap-3">
