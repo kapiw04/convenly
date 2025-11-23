@@ -25,7 +25,9 @@ func (p *PostgresEventRepo) FindByID(eventId string) (*event.Event, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
+	rows.Next()
 	var e event.Event
 	if err := rows.Scan(&e.EventID, &e.Name, &e.Description, &e.Date, &e.Latitude, &e.Longitude, &e.Fee, &e.OrganizerID); err != nil {
 		return nil, err
@@ -83,6 +85,65 @@ func (p *PostgresEventRepo) FindAll() ([]*event.Event, error) {
 		return nil, err
 	}
 	return events, nil
+}
+
+func (p *PostgresEventRepo) RegisterAttendance(userID, eventID string) error {
+	query := "INSERT INTO attendance (user_id, event_id) VALUES ($1, $2)"
+
+	uid, err := uuid.Parse(userID)
+	if err != nil {
+		return err
+	}
+
+	eid, err := uuid.Parse(eventID)
+	if err != nil {
+		return err
+	}
+
+	_, err = p.DB.Exec(query, uid, eid)
+	return err
+}
+
+func (p *PostgresEventRepo) GetAttendees(eventID string) ([]string, error) {
+	query := "SELECT user_id FROM attendance WHERE event_id = $1"
+
+	eid, err := uuid.Parse(eventID)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := p.DB.Query(query, eid)
+	attendees := []string{}
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var uid uuid.UUID
+		if err := rows.Scan(&uid); err != nil {
+			return nil, err
+		}
+		attendees = append(attendees, uid.String())
+	}
+	return attendees, nil
+}
+
+func (p *PostgresEventRepo) RemoveAttendance(userID, eventID string) error {
+	query := "DELETE FROM attendance WHERE user_id = $1 AND event_id = $2"
+
+	uid, err := uuid.Parse(userID)
+	if err != nil {
+		return err
+	}
+
+	eid, err := uuid.Parse(eventID)
+	if err != nil {
+		return err
+	}
+
+	_, err = p.DB.Exec(query, uid, eid)
+	return err
 }
 
 var _ event.EventRepo = &PostgresEventRepo{}

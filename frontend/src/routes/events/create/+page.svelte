@@ -61,7 +61,7 @@
 			errorMessage = 'Please select a start time';
 			return;
 		}
-		if (!eventFee || isNaN(parseFloat(eventFee)) || parseFloat(eventFee) < 0) {
+		if (eventFee === '' || isNaN(parseFloat(eventFee)) || parseFloat(eventFee) < 0) {
 			errorMessage = 'Please enter a valid event fee (0 or greater)';
 			return;
 		}

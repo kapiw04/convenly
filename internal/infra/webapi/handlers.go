@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"slices"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/kapiw04/convenly/internal/domain/event"
 )
@@ -96,9 +98,9 @@ func (rt *Router) CreateEventHandler(w http.ResponseWriter, r *http.Request) {
 		ErrorResponse(w, http.StatusBadRequest, "bad request: "+err.Error())
 		return
 	}
-	userId := r.Context().Value(ctxUserId).(string)
+	uid := getUserId(r)
 
-	event := &event.Event{
+	e := &event.Event{
 		EventID:     uuid.New().String(),
 		Name:        addEventRequest.Name,
 		Description: addEventRequest.Description,
@@ -106,10 +108,10 @@ func (rt *Router) CreateEventHandler(w http.ResponseWriter, r *http.Request) {
 		Latitude:    addEventRequest.Latitude,
 		Longitude:   addEventRequest.Longitude,
 		Fee:         addEventRequest.Fee,
-		OrganizerID: userId,
+		OrganizerID: uid,
 	}
 
-	err = rt.EventService.CreateEvent(event)
+	err = rt.EventService.CreateEvent(e)
 	if err != nil {
 		ErrorResponse(w, http.StatusBadRequest, "bad request: "+err.Error())
 		return
@@ -127,7 +129,7 @@ func (rt *Router) ListEventsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rt *Router) GetUserInfoHandler(w http.ResponseWriter, r *http.Request) {
-	user, err := rt.UserService.GetByUUID(r.Context().Value(ctxUserId).(string))
+	user, err := rt.UserService.GetByUUID(getUserId(r))
 	if err != nil {
 		ErrorResponse(w, http.StatusBadRequest, "bad request: "+err.Error())
 		return
@@ -138,8 +140,58 @@ func (rt *Router) GetUserInfoHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rt *Router) BecomeHostHandler(w http.ResponseWriter, r *http.Request) {
-	userId := r.Context().Value(ctxUserId).(string)
+	userId := getUserId(r)
 	err := rt.UserService.PromoteToHost(userId)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "bad request: "+err.Error())
+		return
+	}
+	JSONResponse(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+func (rt *Router) EventDetailHandler(w http.ResponseWriter, r *http.Request) {
+	eid := chi.URLParam(r, "id")
+	uid := getUserId(r)
+	e, err := rt.EventService.GetEventByID(eid)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "bad request: "+err.Error())
+		return
+	}
+	attendees, err := rt.EventService.GetAttendees(eid)
+
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "bad request: "+err.Error())
+		return
+	}
+
+	JSONResponse(w, http.StatusOK, struct {
+		*event.Event
+		AttendeesCount int  `json:"attendees_count"`
+		UserRegistered bool `json:"user_registered"`
+	}{
+		Event:          e,
+		AttendeesCount: len(attendees),
+		UserRegistered: uid != "" && slices.Contains(attendees, uid),
+	})
+}
+
+func (rt *Router) UnregisterFromEventHandler(w http.ResponseWriter, r *http.Request) {
+	eventId := chi.URLParam(r, "id")
+	userId := getUserId(r)
+
+	err := rt.EventService.RemoveAttendance(userId, eventId)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "bad request: "+err.Error())
+		return
+	}
+	JSONResponse(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+func (rt *Router) RegisterForEventHandler(w http.ResponseWriter, r *http.Request) {
+	eventId := chi.URLParam(r, "id")
+	userId := getUserId(r)
+
+	err := rt.EventService.RegisterAttendance(userId, eventId)
 	if err != nil {
 		ErrorResponse(w, http.StatusBadRequest, "bad request: "+err.Error())
 		return
@@ -153,4 +205,12 @@ func (rt *Router) HealthHandler(w http.ResponseWriter, r *http.Request) {
 
 func (rt *Router) NotFoundHandler(w http.ResponseWriter, r *http.Request) {
 	ErrorResponse(w, http.StatusNotFound, "path not found")
+}
+
+func getUserId(r *http.Request) string {
+	userId, ok := r.Context().Value(ctxUserId).(string)
+	if !ok {
+		return ""
+	}
+	return userId
 }

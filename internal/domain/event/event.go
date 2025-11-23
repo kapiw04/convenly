@@ -17,4 +17,7 @@ type EventRepo interface {
 	Save(*Event) error
 	FindByID(string) (*Event, error)
 	FindAll() ([]*Event, error)
+	RegisterAttendance(userID, eventID string) error
+	GetAttendees(eventID string) ([]string, error)
+	RemoveAttendance(userID, eventID string) error
 }

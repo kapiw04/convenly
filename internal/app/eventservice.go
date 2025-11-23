@@ -21,3 +21,15 @@ func (s *EventService) GetEventByID(eventID string) (*event.Event, error) {
 func (s *EventService) GetAllEvents() ([]*event.Event, error) {
 	return s.eventRepo.FindAll()
 }
+
+func (s *EventService) RegisterAttendance(userID, eventID string) error {
+	return s.eventRepo.RegisterAttendance(userID, eventID)
+}
+
+func (s *EventService) GetAttendees(eventID string) ([]string, error) {
+	return s.eventRepo.GetAttendees(eventID)
+}
+
+func (s *EventService) RemoveAttendance(userID, eventID string) error {
+	return s.eventRepo.RemoveAttendance(userID, eventID)
+}

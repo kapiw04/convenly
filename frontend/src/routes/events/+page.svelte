@@ -8,6 +8,7 @@
 	import { user } from '$lib/stores/user';
 
 	interface Event {
+		event_id: string;
 		name: string;
 		description: string;
 		date: string;
@@ -100,7 +101,7 @@
 						</div>
 					</Card.Content>
 					<Card.Footer>
-						<Button class="w-full">View Details</Button>
+						<Button class="w-full" href={`/events/${event.event_id}`}>View Details</Button>
 					</Card.Footer>
 				</Card.Root>
 			{/each}
