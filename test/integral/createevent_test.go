@@ -35,6 +35,7 @@ func TestCreateEvent_Success(t *testing.T) {
 		events, err := eventSrvc.GetAllEvents()
 		require.NoError(t, err)
 		require.Len(t, events, 1)
+		require.Equal(t, []string{"Music"}, events[0].Tags)
 	})
 }
 
@@ -232,6 +233,7 @@ func createEventRequest(t *testing.T) []byte {
 		Longitude:   21.37,
 		Fee:         10.0,
 		Date:        "2005-04-02T21:37:00Z",
+		Tags:        []string{"Music"},
 	}
 	body, err := json.Marshal(req)
 	require.NoError(t, err)
@@ -240,7 +242,7 @@ func createEventRequest(t *testing.T) []byte {
 
 func newEventRequest(t *testing.T, body []byte, sessionID string) *http.Request {
 	t.Helper()
-	req := httptest.NewRequest(http.MethodPost, "/events/add", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/events/add", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	if sessionID != "" {
 		req.AddCookie(&http.Cookie{Name: "session-id", Value: sessionID})

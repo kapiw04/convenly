@@ -51,9 +51,13 @@ func (s *UserService) Register(name string, rawEmail string, rawPassword string)
 	return nil
 }
 
-func (s *UserService) GetByEmail(email string) (*user.User, error) {
-	slog.Info("Getting user with email: %s", "email", email)
-	return s.userRepo.FindByEmail(email)
+func (s *UserService) GetByEmail(rawEmail string) (*user.User, error) {
+	slog.Info("Getting user with email: %s", "email", rawEmail)
+	email, err := user.NewEmail(rawEmail)
+	if err != nil {
+		return nil, err
+	}
+	return s.userRepo.FindByEmail(email.String())
 }
 
 func (s *UserService) GetByUUID(userId string) (*user.User, error) {

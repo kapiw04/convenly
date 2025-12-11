@@ -35,7 +35,7 @@ tasks:
   test:
     desc: Run all Go tests
     cmds:
-      - go test ./...
+      - gotestsum ./...
 
   build:
     desc: Build the application binary

@@ -7,8 +7,6 @@ RUN go mod download
 
 COPY . .
 
-RUN go mod download
-
 ENV CGO_ENABLED=0
 RUN go build -o /bin/app ./cmd/app
 

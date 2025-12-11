@@ -18,6 +18,10 @@ func (s *EventService) GetEventByID(eventID string) (*event.Event, error) {
 	return s.eventRepo.FindByID(eventID)
 }
 
+func (s *EventService) GetEventByTag(tagNames []string) ([]*event.Event, error) {
+	return s.eventRepo.FindAllByTags(tagNames)
+}
+
 func (s *EventService) GetAllEvents() ([]*event.Event, error) {
 	return s.eventRepo.FindAll()
 }

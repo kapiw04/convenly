@@ -12,10 +12,11 @@ type LoginRequest struct {
 }
 
 type CreateEventRequest struct {
-	Name        string  `json:"name"`
-	Description string  `json:"description"`
-	Date        string  `json:"date"` // ISO 8601 format
-	Latitude    float64 `json:"latitude"`
-	Longitude   float64 `json:"longitude"`
-	Fee         float32 `json:"fee"`
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	Date        string   `json:"date"` // ISO 8601 format
+	Latitude    float64  `json:"latitude"`
+	Longitude   float64  `json:"longitude"`
+	Fee         float32  `json:"fee"`
+	Tags        []string `json:"tags,omitempty"`
 }

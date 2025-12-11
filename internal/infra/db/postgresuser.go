@@ -20,9 +20,13 @@ func (r *PostgresUserRepo) FindByEmail(email string) (*user.User, error) {
 	if err != nil {
 		return nil, err
 	}
-	var user user.User
+	defer rows.Close()
 
-	rows.Next()
+	if !rows.Next() {
+		return nil, sql.ErrNoRows
+	}
+
+	var user user.User
 	if err := rows.Scan(&user.UUID, &user.Name, &user.Email, &user.PasswordHash, &user.Role); err != nil {
 		return nil, err
 	}
@@ -49,9 +53,13 @@ func (r *PostgresUserRepo) FindByUUID(uuid string) (*user.User, error) {
 	if err != nil {
 		return nil, err
 	}
-	var user user.User
+	defer rows.Close()
 
-	rows.Next()
+	if !rows.Next() {
+		return nil, sql.ErrNoRows
+	}
+
+	var user user.User
 	if err := rows.Scan(&user.UUID, &user.Name, &user.Email, &user.PasswordHash, &user.Role); err != nil {
 		return nil, err
 	}

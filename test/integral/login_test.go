@@ -36,7 +36,7 @@ func TestLogin_Success(t *testing.T) {
 		body, err := json.Marshal(loginReq)
 		require.NoError(t, err)
 
-		req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewReader(body))
+		req := httptest.NewRequest(http.MethodPost, "/api/login", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
@@ -44,7 +44,7 @@ func TestLogin_Success(t *testing.T) {
 
 		require.Equal(t, http.StatusOK, w.Code)
 
-		var response map[string]string
+		var response map[string]interface{}
 		err = json.NewDecoder(w.Body).Decode(&response)
 		require.NoError(t, err)
 	})
@@ -71,7 +71,7 @@ func TestLogin_InvalidPassword(t *testing.T) {
 		body, err := json.Marshal(loginReq)
 		require.NoError(t, err)
 
-		req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewReader(body))
+		req := httptest.NewRequest(http.MethodPost, "/api/login", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
@@ -95,7 +95,7 @@ func TestLogin_NonExistentUser(t *testing.T) {
 		body, err := json.Marshal(loginReq)
 		require.NoError(t, err)
 
-		req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewReader(body))
+		req := httptest.NewRequest(http.MethodPost, "/api/login", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
@@ -119,7 +119,7 @@ func TestLogin_EmptyEmail(t *testing.T) {
 		body, err := json.Marshal(loginReq)
 		require.NoError(t, err)
 
-		req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewReader(body))
+		req := httptest.NewRequest(http.MethodPost, "/api/login", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
@@ -150,7 +150,7 @@ func TestLogin_EmptyPassword(t *testing.T) {
 		body, err := json.Marshal(loginReq)
 		require.NoError(t, err)
 
-		req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewReader(body))
+		req := httptest.NewRequest(http.MethodPost, "/api/login", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
@@ -188,7 +188,7 @@ func TestLogin_CaseInsensitiveEmail(t *testing.T) {
 		body, err := json.Marshal(loginReq)
 		require.NoError(t, err)
 
-		req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewReader(body))
+		req := httptest.NewRequest(http.MethodPost, "/api/login", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
@@ -196,10 +196,9 @@ func TestLogin_CaseInsensitiveEmail(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var response map[string]string
+		var response map[string]interface{}
 		err = json.NewDecoder(w.Body).Decode(&response)
 		require.NoError(t, err)
-
 	})
 }
 
@@ -224,7 +223,7 @@ func TestLogin_EmailWithWhitespace(t *testing.T) {
 		body, err := json.Marshal(loginReq)
 		require.NoError(t, err)
 
-		req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewReader(body))
+		req := httptest.NewRequest(http.MethodPost, "/api/login", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
@@ -232,7 +231,7 @@ func TestLogin_EmailWithWhitespace(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var response map[string]string
+		var response map[string]interface{}
 		err = json.NewDecoder(w.Body).Decode(&response)
 		require.NoError(t, err)
 	})
@@ -247,7 +246,7 @@ func TestLogin_InvalidJSON(t *testing.T) {
 	WithTx(t, sqlDb, func(t *testing.T, tx *sql.Tx) {
 		body := []byte(`{"email": "bob@example.com", "password":`)
 
-		req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewReader(body))
+		req := httptest.NewRequest(http.MethodPost, "/api/login", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 

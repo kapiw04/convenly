@@ -1,4 +1,0 @@
-CREATE TABLE tags (
-    tag_id UUID PRIMARY KEY,
-    name TEXT UNIQUE NOT NULL
-);

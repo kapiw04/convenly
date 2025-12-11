@@ -8,8 +8,10 @@
 	import { MapPicker } from '$lib/components/ui/map-picker';
 	import * as Alert from '$lib/components/ui/alert';
 	import { Separator } from '$lib/components/ui/separator';
+	import { Badge } from '$lib/components/ui/badge';
 	import Calendar from '$lib/components/ui/calendar/calendar.svelte';
 	import { CalendarDate, type DateValue } from '@internationalized/date';
+	import { AVAILABLE_TAGS } from '$lib/constants/tags';
 	import {
 		IconCalendarEvent,
 		IconMapPin,
@@ -18,7 +20,9 @@
 		IconClock,
 		IconCheck,
 		IconAlertCircle,
-		IconCalendarPlus
+		IconCalendarPlus,
+		IconTag,
+		IconX
 	} from '@tabler/icons-svelte';
 
 	const api = import.meta.env.VITE_API_URL;
@@ -31,6 +35,7 @@
 	let isSubmitting = $state(false);
 	let successMessage = $state('');
 	let errorMessage = $state('');
+	let selectedTags = $state<string[]>([]);
 
 	let calendarValue = $state<DateValue | undefined>(undefined);
 	let startTime = $state('10:00:00');
@@ -39,6 +44,18 @@
 	function handleLocationChange(lat: number, lng: number) {
 		selectedLatitude = lat;
 		selectedLongitude = lng;
+	}
+
+	function toggleTag(tag: string) {
+		if (selectedTags.includes(tag)) {
+			selectedTags = selectedTags.filter((t) => t !== tag);
+		} else {
+			selectedTags = [...selectedTags, tag];
+		}
+	}
+
+	function removeTag(tag: string) {
+		selectedTags = selectedTags.filter((t) => t !== tag);
 	}
 
 	async function handleSubmit() {
@@ -83,7 +100,8 @@
 					date: eventDateTime,
 					latitude: selectedLatitude,
 					longitude: selectedLongitude,
-					fee: parseFloat(eventFee)
+					fee: parseFloat(eventFee),
+					tags: selectedTags
 				})
 			});
 
@@ -97,6 +115,7 @@
 				eventFee = '';
 				selectedLatitude = 51.505;
 				selectedLongitude = -0.09;
+				selectedTags = [];
 
 				setTimeout(() => {
 					goto('/events');
@@ -271,6 +290,51 @@
 					step="0.01"
 				/>
 				<p class="text-sm text-muted-foreground">Set to 0 for free events</p>
+			</div>
+
+			<Separator />
+
+			<div class="space-y-3">
+				<Label class="text-base font-semibold flex items-center gap-2">
+					<IconTag class="w-4 h-4 text-primary" />
+					Event Tags
+				</Label>
+				<p class="text-sm text-muted-foreground">Select tags that describe your event</p>
+
+				{#if selectedTags.length > 0}
+					<div class="flex flex-wrap gap-2 p-3 bg-muted/50 rounded-lg">
+						{#each selectedTags as tag}
+							<Badge variant="default" class="gap-1 pr-1">
+								{tag}
+								<button
+									type="button"
+									onclick={() => removeTag(tag)}
+									class="ml-1 hover:bg-primary-foreground/20 rounded-full p-0.5"
+									disabled={isSubmitting}
+								>
+									<IconX class="w-3 h-3" />
+								</button>
+							</Badge>
+						{/each}
+					</div>
+				{/if}
+
+				<div class="flex flex-wrap gap-2">
+					{#each AVAILABLE_TAGS as tag}
+						<button
+							type="button"
+							onclick={() => toggleTag(tag)}
+							disabled={isSubmitting}
+							class="px-3 py-1.5 text-sm rounded-full border transition-colors {selectedTags.includes(
+								tag
+							)
+								? 'bg-primary text-primary-foreground border-primary'
+								: 'bg-background hover:bg-muted border-input'}"
+						>
+							{tag}
+						</button>
+					{/each}
+				</div>
 			</div>
 
 			<Separator />

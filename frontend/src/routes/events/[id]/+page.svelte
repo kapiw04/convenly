@@ -18,7 +18,8 @@
 		IconArrowLeft,
 		IconCheck,
 		IconAlertCircle,
-		IconUsers
+		IconUsers,
+		IconTag
 	} from '@tabler/icons-svelte';
 
 	interface Event {
@@ -32,6 +33,7 @@
 		organizer_id: string;
 		attendees_count: number;
 		user_registered: boolean;
+		tag?: string[];
 	}
 
 	const api = import.meta.env.VITE_API_URL;
@@ -79,7 +81,6 @@
 			return;
 		}
 
-		// Prevent double registration
 		if (isRegistered) {
 			registrationError = 'You are already registered for this event';
 			return;
@@ -98,7 +99,6 @@
 			if (response.ok) {
 				registrationSuccess = true;
 				isRegistered = true;
-				// Refresh event data to get updated attendee count
 				await fetchEventDetails();
 			} else {
 				const data = await response.json();
@@ -116,7 +116,6 @@
 			return;
 		}
 
-		// Prevent unregistering if not registered
 		if (!isRegistered) {
 			registrationError = 'You are not registered for this event';
 			return;
@@ -134,7 +133,6 @@
 			if (response.ok) {
 				isRegistered = false;
 				registrationSuccess = false;
-				// Refresh event data to get updated attendee count
 				await fetchEventDetails();
 			} else {
 				const data = await response.json();
@@ -219,7 +217,7 @@
 			<div class="flex items-start justify-between gap-4 flex-wrap">
 				<div class="space-y-2 flex-1">
 					<h1 class="text-4xl md:text-5xl font-bold tracking-tight">{event.name}</h1>
-					<div class="flex items-center gap-2">
+					<div class="flex items-center gap-2 flex-wrap">
 						<Badge variant="secondary" class="text-sm">
 							<IconCalendarEvent class="w-3 h-3 mr-1" />
 							Upcoming Event
@@ -234,6 +232,14 @@
 							</Badge>
 						{/if}
 					</div>
+					{#if event.tag && event.tag.length > 0}
+						<div class="flex items-center gap-2 flex-wrap pt-2">
+							<IconTag class="w-4 h-4 text-muted-foreground" />
+							{#each event.tag as tag}
+								<Badge variant="outline" class="text-sm">{tag}</Badge>
+							{/each}
+						</div>
+					{/if}
 				</div>
 			</div>
 		</div>

@@ -4,17 +4,17 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"testing"
 
 	"github.com/docker/go-connections/nat"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
-	"github.com/stretchr/testify/require"
+	_ "github.com/lib/pq"
 	"github.com/testcontainers/testcontainers-go"
-
 	"github.com/testcontainers/testcontainers-go/wait"
 )
+
+const reusablePgName = "convenly_pg_dev"
 
 type PgConnection struct {
 	Port      string
@@ -26,40 +26,57 @@ type PgConnection struct {
 	DSN       string
 }
 
+var (
+	pgConn *PgConnection
+	sqlDB  *sql.DB
+)
+
 func StartPostgres() (*PgConnection, error) {
 	ctx := context.Background()
+
 	req := testcontainers.ContainerRequest{
-		Image: "postgres",
+		Name:  reusablePgName,
+		Image: "postgres:16-alpine",
 		Env: map[string]string{
 			"POSTGRES_USER":     "user",
 			"POSTGRES_PASSWORD": "pass",
-			"POSTGRES_DB":       "db"},
+			"POSTGRES_DB":       "db",
+		},
 		ExposedPorts: []string{"5432/tcp"},
-		WaitingFor: wait.ForAll(
-			wait.ForLog("database system is ready to accept connections"),
-			wait.ForListeningPort("5432/tcp"),
-			wait.ForSQL("5432/tcp", "postgres", func(host string, port nat.Port) string {
-				return fmt.Sprintf("host=%s port=%s dbname=db user=user password=pass sslmode=disable", host, port.Port())
-			}),
-		),
+		WaitingFor: wait.ForSQL("5432/tcp", "postgres", func(host string, port nat.Port) string {
+			return fmt.Sprintf(
+				"host=%s port=%s dbname=db user=user password=pass sslmode=disable",
+				host,
+				port.Port(),
+			)
+		}),
 		Cmd: []string{"postgres", "-c", "max_connections=500"},
 	}
+
 	pgContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: req,
+		Reuse:            true,
 		Started:          true,
 	})
 	if err != nil {
 		return nil, err
 	}
+
 	ip, err := pgContainer.Host(ctx)
 	if err != nil {
 		return nil, err
 	}
+
 	port, err := pgContainer.MappedPort(ctx, "5432")
 	if err != nil {
 		return nil, err
 	}
-	dsn := fmt.Sprintf("host=%s port=%s dbname=db user=user password=pass sslmode=disable connect_timeout=10", ip, port.Port())
+
+	dsn := fmt.Sprintf(
+		"host=%s port=%s dbname=db user=user password=pass sslmode=disable connect_timeout=10",
+		ip,
+		port.Port(),
+	)
 
 	return &PgConnection{
 		Port:      port.Port(),
@@ -72,17 +89,25 @@ func StartPostgres() (*PgConnection, error) {
 	}, nil
 }
 
-func ApplyMigrations(t *testing.T, db *sql.DB) {
+func applyMigrations(db *sql.DB) error {
 	driver, err := postgres.WithInstance(db, &postgres.Config{})
-	require.NoError(t, err)
+	if err != nil {
+		return err
+	}
+
 	m, err := migrate.NewWithDatabaseInstance(
 		"file://../../internal/infra/db/migrations",
-		"postgres", driver,
+		"postgres",
+		driver,
 	)
-	require.NoError(t, err)
+	if err != nil {
+		return err
+	}
 
 	err = m.Up()
 	if err != nil && err != migrate.ErrNoChange {
-		require.NoError(t, err)
+		return err
 	}
+
+	return nil
 }

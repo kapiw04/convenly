@@ -37,7 +37,8 @@ func main() {
 	userRepo := db.NewPostgresUserRepo(postgresDb)
 	sessionRepo := db.NewPostgresSessionRepo(postgresDb, userRepo)
 	userService := app.NewUserService(userRepo, sessionRepo, hasher)
-	eventRepo := db.NewPostgresEventRepo(postgresDb)
+	tagsRepo := db.NewPostgresTagRepo(postgresDb)
+	eventRepo := db.NewPostgresEventRepo(postgresDb, tagsRepo)
 	eventService := app.NewEventService(eventRepo)
 
 	router := webapi.NewRouter(userService, eventService)

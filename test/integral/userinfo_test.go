@@ -16,7 +16,7 @@ func Test_GetUserInfo(t *testing.T) {
 
 	WithTx(t, sqlDb, func(t *testing.T, tx *sql.Tx) {
 		sessionID := RegisterAndLoginUser(t, userSrvc, "Alice", "alice@example.com", "Secret123!")
-		req := httptest.NewRequest(http.MethodGet, "/me", nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/me", nil)
 		req.AddCookie(&http.Cookie{Name: "session-id", Value: sessionID})
 		w := httptest.NewRecorder()
 

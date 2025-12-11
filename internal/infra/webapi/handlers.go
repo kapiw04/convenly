@@ -109,6 +109,7 @@ func (rt *Router) CreateEventHandler(w http.ResponseWriter, r *http.Request) {
 		Longitude:   addEventRequest.Longitude,
 		Fee:         addEventRequest.Fee,
 		OrganizerID: uid,
+		Tags:        addEventRequest.Tags,
 	}
 
 	err = rt.EventService.CreateEvent(e)
