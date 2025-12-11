@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"net/http"
 	"slices"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -121,7 +123,70 @@ func (rt *Router) CreateEventHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rt *Router) ListEventsHandler(w http.ResponseWriter, r *http.Request) {
-	events, err := rt.EventService.GetAllEvents()
+	filter := &event.EventFilter{}
+
+	if dateFrom := r.URL.Query().Get("date_from"); dateFrom != "" {
+		t, err := time.Parse(time.RFC3339, dateFrom)
+		if err != nil {
+			// Try parsing as date only (YYYY-MM-DD)
+			t, err = time.Parse("2006-01-02", dateFrom)
+			if err != nil {
+				ErrorResponse(w, http.StatusBadRequest, "invalid date_from format, use RFC3339 or YYYY-MM-DD")
+				return
+			}
+		}
+		filter.DateFrom = &t
+	}
+
+	if dateTo := r.URL.Query().Get("date_to"); dateTo != "" {
+		t, err := time.Parse(time.RFC3339, dateTo)
+		if err != nil {
+			t, err = time.Parse("2006-01-02", dateTo)
+			if err != nil {
+				ErrorResponse(w, http.StatusBadRequest, "invalid date_to format, use RFC3339 or YYYY-MM-DD")
+				return
+			}
+			t = t.Add(23*time.Hour + 59*time.Minute + 59*time.Second)
+		}
+		filter.DateTo = &t
+	}
+
+	if minFee := r.URL.Query().Get("min_fee"); minFee != "" {
+		f, err := strconv.ParseFloat(minFee, 32)
+		if err != nil {
+			ErrorResponse(w, http.StatusBadRequest, "invalid min_fee format")
+			return
+		}
+		fee := float32(f)
+		filter.MinFee = &fee
+	}
+
+	if maxFee := r.URL.Query().Get("max_fee"); maxFee != "" {
+		f, err := strconv.ParseFloat(maxFee, 32)
+		if err != nil {
+			ErrorResponse(w, http.StatusBadRequest, "invalid max_fee format")
+			return
+		}
+		fee := float32(f)
+		filter.MaxFee = &fee
+	}
+
+	if tags := r.URL.Query().Get("tags"); tags != "" {
+		filter.Tags = strings.Split(tags, ",")
+	}
+
+	hasFilters := filter.DateFrom != nil || filter.DateTo != nil ||
+		filter.MinFee != nil || filter.MaxFee != nil || len(filter.Tags) > 0
+
+	var events []*event.Event
+	var err error
+
+	if hasFilters {
+		events, err = rt.EventService.GetEventsWithFilters(filter)
+	} else {
+		events, err = rt.EventService.GetAllEvents()
+	}
+
 	if err != nil {
 		ErrorResponse(w, http.StatusBadRequest, "bad request: "+err.Error())
 		return

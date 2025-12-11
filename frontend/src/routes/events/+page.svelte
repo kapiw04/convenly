@@ -1,11 +1,14 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
 	import * as Alert from '$lib/components/ui/alert';
 	import { Separator } from '$lib/components/ui/separator';
 	import { Input } from '$lib/components/ui/input';
+	import { Label } from '$lib/components/ui/label';
 	import { user } from '$lib/stores/user';
 	import { AVAILABLE_TAGS } from '$lib/constants/tags';
 	import { IconSearch, IconX, IconFilter } from '@tabler/icons-svelte';
@@ -15,6 +18,7 @@
 		name: string;
 		description: string;
 		date: string;
+		fee: number;
 		tag?: string[];
 	}
 
@@ -27,6 +31,59 @@
 	let selectedTags = $state<string[]>([]);
 	let showFilters = $state(false);
 
+	let dateFrom = $state('');
+	let dateTo = $state('');
+	let minFee = $state('');
+	let maxFee = $state('');
+	let freeOnly = $state(false);
+
+	function initFiltersFromUrl() {
+		const url = $page.url;
+		searchQuery = url.searchParams.get('q') || '';
+		const tagsParam = url.searchParams.get('tags');
+		selectedTags = tagsParam ? tagsParam.split(',') : [];
+		dateFrom = url.searchParams.get('date_from') || '';
+		dateTo = url.searchParams.get('date_to') || '';
+		minFee = url.searchParams.get('min_fee') || '';
+		maxFee = url.searchParams.get('max_fee') || '';
+		freeOnly = url.searchParams.get('free') === 'true';
+
+		if (selectedTags.length > 0 || dateFrom || dateTo || minFee || maxFee || freeOnly) {
+			showFilters = true;
+		}
+	}
+
+	function updateUrl() {
+		const params = new URLSearchParams();
+
+		if (searchQuery.trim()) {
+			params.set('q', searchQuery.trim());
+		}
+		if (selectedTags.length > 0) {
+			params.set('tags', selectedTags.join(','));
+		}
+		if (dateFrom) {
+			params.set('date_from', dateFrom);
+		}
+		if (dateTo) {
+			params.set('date_to', dateTo);
+		}
+		if (freeOnly) {
+			params.set('free', 'true');
+		} else {
+			if (minFee) {
+				params.set('min_fee', minFee);
+			}
+			if (maxFee) {
+				params.set('max_fee', maxFee);
+			}
+		}
+
+		const queryString = params.toString();
+		const newUrl = queryString ? `/events?${queryString}` : '/events';
+		goto(newUrl, { replaceState: true, keepFocus: true });
+	}
+
 	let filteredEvents = $derived(() => {
 		let result = events;
 
@@ -36,12 +93,6 @@
 				(event) =>
 					event.name.toLowerCase().includes(query) ||
 					event.description.toLowerCase().includes(query)
-			);
-		}
-
-		if (selectedTags.length > 0) {
-			result = result.filter(
-				(event) => event.tag && event.tag.some((t) => selectedTags.includes(t))
 			);
 		}
 
@@ -59,16 +110,51 @@
 	function clearFilters() {
 		searchQuery = '';
 		selectedTags = [];
+		dateFrom = '';
+		dateTo = '';
+		minFee = '';
+		maxFee = '';
+		freeOnly = false;
+		updateUrl();
+		fetchEvents();
 	}
 
-	onMount(async () => {
+	async function fetchEvents() {
+		loading = true;
+		error = '';
+
 		try {
-			const response = await fetch(`${api}/api/events`, {
+			const params = new URLSearchParams();
+
+			if (selectedTags.length > 0) {
+				params.set('tags', selectedTags.join(','));
+			}
+			if (dateFrom) {
+				params.set('date_from', dateFrom);
+			}
+			if (dateTo) {
+				params.set('date_to', dateTo);
+			}
+			if (freeOnly) {
+				params.set('min_fee', '0');
+				params.set('max_fee', '0');
+			} else {
+				if (minFee) {
+					params.set('min_fee', minFee);
+				}
+				if (maxFee) {
+					params.set('max_fee', maxFee);
+				}
+			}
+
+			const queryString = params.toString();
+			const url = queryString ? `${api}/api/events?${queryString}` : `${api}/api/events`;
+
+			const response = await fetch(url, {
 				credentials: 'include'
 			});
 			if (response.ok) {
 				events = await response.json();
-				console.log(events);
 			} else {
 				error = 'Failed to load events';
 			}
@@ -77,6 +163,16 @@
 		} finally {
 			loading = false;
 		}
+	}
+
+	async function applyFilters() {
+		updateUrl();
+		await fetchEvents();
+	}
+
+	onMount(async () => {
+		initFiltersFromUrl();
+		await fetchEvents();
 	});
 
 	function formatDate(dateString: string): string {
@@ -89,6 +185,15 @@
 			minute: '2-digit'
 		});
 	}
+
+	function formatFee(fee: number): string {
+		if (fee === 0) return 'Free';
+		return `$${fee.toFixed(2)}`;
+	}
+
+	let hasActiveFilters = $derived(
+		selectedTags.length > 0 || dateFrom || dateTo || minFee || maxFee || freeOnly
+	);
 </script>
 
 <div class="container mx-auto px-4 py-8">
@@ -130,11 +235,11 @@
 			>
 				<IconFilter class="w-4 h-4" />
 				Filters
-				{#if selectedTags.length > 0}
-					<Badge variant="secondary" class="ml-1">{selectedTags.length}</Badge>
+				{#if hasActiveFilters}
+					<Badge variant="secondary" class="ml-1">●</Badge>
 				{/if}
 			</Button>
-			{#if searchQuery || selectedTags.length > 0}
+			{#if searchQuery || hasActiveFilters}
 				<Button variant="ghost" onclick={clearFilters} class="gap-2">
 					<IconX class="w-4 h-4" />
 					Clear
@@ -144,27 +249,96 @@
 
 		{#if showFilters}
 			<Card.Root class="p-4">
-				<div class="space-y-3">
-					<div class="text-sm font-medium">Filter by tags</div>
-					<div class="flex flex-wrap gap-2">
-						{#each AVAILABLE_TAGS as tag}
-							<button
-								onclick={() => toggleTagFilter(tag)}
-								class="px-3 py-1.5 text-sm rounded-full border transition-colors {selectedTags.includes(
-									tag
-								)
-									? 'bg-primary text-primary-foreground border-primary'
-									: 'bg-background hover:bg-muted border-input'}"
-							>
-								{tag}
-							</button>
-						{/each}
+				<div class="space-y-4">
+					<div class="space-y-3">
+						<div class="text-sm font-medium">Filter by tags</div>
+						<div class="flex flex-wrap gap-2">
+							{#each AVAILABLE_TAGS as tag}
+								<button
+									onclick={() => toggleTagFilter(tag)}
+									class="px-3 py-1.5 text-sm rounded-full border transition-colors {selectedTags.includes(
+										tag
+									)
+										? 'bg-primary text-primary-foreground border-primary'
+										: 'bg-background hover:bg-muted border-input'}"
+								>
+									{tag}
+								</button>
+							{/each}
+						</div>
+					</div>
+
+					<Separator />
+
+					<div class="space-y-3">
+						<div class="text-sm font-medium">Filter by date</div>
+						<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+							<div class="space-y-2">
+								<Label for="date-from">From</Label>
+								<Input type="date" id="date-from" bind:value={dateFrom} />
+							</div>
+							<div class="space-y-2">
+								<Label for="date-to">To</Label>
+								<Input type="date" id="date-to" bind:value={dateTo} />
+							</div>
+						</div>
+					</div>
+
+					<Separator />
+
+					<div class="space-y-3">
+						<div class="text-sm font-medium">Filter by fee</div>
+
+						<!-- Free only checkbox -->
+						<label class="flex items-center gap-2 cursor-pointer">
+							<input
+								type="checkbox"
+								bind:checked={freeOnly}
+								class="w-4 h-4 rounded border-input accent-primary"
+							/>
+							<span class="text-sm">Free events only</span>
+						</label>
+
+						<!-- Fee range inputs (disabled when freeOnly is checked) -->
+						<div class="grid grid-cols-1 sm:grid-cols-2 gap-4" class:opacity-50={freeOnly}>
+							<div class="space-y-2">
+								<Label for="min-fee">Min ($)</Label>
+								<Input
+									type="number"
+									id="min-fee"
+									placeholder="0"
+									min="0"
+									step="0.01"
+									bind:value={minFee}
+									disabled={freeOnly}
+								/>
+							</div>
+							<div class="space-y-2">
+								<Label for="max-fee">Max ($)</Label>
+								<Input
+									type="number"
+									id="max-fee"
+									placeholder="Any"
+									min="0"
+									step="0.01"
+									bind:value={maxFee}
+									disabled={freeOnly}
+								/>
+							</div>
+						</div>
+					</div>
+
+					<Separator />
+
+					<div class="flex justify-end gap-2">
+						<Button variant="outline" onclick={clearFilters}>Clear All</Button>
+						<Button onclick={applyFilters}>Apply Filters</Button>
 					</div>
 				</div>
 			</Card.Root>
 		{/if}
 
-		{#if searchQuery || selectedTags.length > 0}
+		{#if searchQuery || hasActiveFilters}
 			<div class="text-sm text-muted-foreground">
 				Showing {filteredEvents().length} of {events.length} events
 			</div>
@@ -224,6 +398,10 @@
 							<div class="flex items-center gap-3 text-sm">
 								<span class="text-xl">🕐</span>
 								<span class="text-muted-foreground">{formatDate(event.date)}</span>
+							</div>
+							<div class="flex items-center gap-3 text-sm">
+								<span class="text-xl">💰</span>
+								<span class="text-muted-foreground font-medium">{formatFee(event.fee)}</span>
 							</div>
 						</div>
 					</Card.Content>

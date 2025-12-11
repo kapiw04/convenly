@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -259,6 +260,91 @@ func (p *PostgresEventRepo) FindAllByTags(tagNames []string) ([]*event.Event, er
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
+	return events, nil
+}
+
+func (p *PostgresEventRepo) FindAllWithFilters(filter *event.EventFilter) ([]*event.Event, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	query := `
+		SELECT DISTINCT e.event_id, e.name, e.description, e.date, e.latitude, e.longitude, e.fee, e.organizer_id
+		FROM events e
+	`
+	var args []interface{}
+	argIndex := 1
+	var conditions []string
+
+	if len(filter.Tags) > 0 {
+		query += `
+			INNER JOIN event_tag et ON et.event_id = e.event_id
+			INNER JOIN tags t ON t.tag_id = et.tag_id
+		`
+		conditions = append(conditions, fmt.Sprintf("t.name = ANY($%d)", argIndex))
+		args = append(args, pq.Array(filter.Tags))
+		argIndex++
+	}
+
+	if filter.DateFrom != nil {
+		conditions = append(conditions, fmt.Sprintf("e.date >= $%d", argIndex))
+		args = append(args, *filter.DateFrom)
+		argIndex++
+	}
+	if filter.DateTo != nil {
+		conditions = append(conditions, fmt.Sprintf("e.date <= $%d", argIndex))
+		args = append(args, *filter.DateTo)
+		argIndex++
+	}
+
+	if filter.MinFee != nil {
+		conditions = append(conditions, fmt.Sprintf("e.fee >= $%d", argIndex))
+		args = append(args, *filter.MinFee)
+		argIndex++
+	}
+	if filter.MaxFee != nil {
+		conditions = append(conditions, fmt.Sprintf("e.fee <= $%d", argIndex))
+		args = append(args, *filter.MaxFee)
+		argIndex++
+	}
+
+	if len(conditions) > 0 {
+		query += " WHERE "
+		for i, cond := range conditions {
+			if i > 0 {
+				query += " AND "
+			}
+			query += cond
+		}
+	}
+
+	query += " ORDER BY e.date ASC"
+
+	rows, err := p.DB.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var events []*event.Event
+	for rows.Next() {
+		var e event.Event
+		if err := rows.Scan(&e.EventID, &e.Name, &e.Description, &e.Date, &e.Latitude, &e.Longitude, &e.Fee, &e.OrganizerID); err != nil {
+			return nil, err
+		}
+		events = append(events, &e)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	for _, e := range events {
+		tags, err := findTagNames(p, e.EventID)
+		if err != nil {
+			return nil, err
+		}
+		e.Tags = tags
+	}
+
 	return events, nil
 }
 

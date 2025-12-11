@@ -14,10 +14,19 @@ type Event struct {
 	Tags        []string  `json:"tag,omitempty"`
 }
 
+type EventFilter struct {
+	DateFrom *time.Time
+	DateTo   *time.Time
+	MinFee   *float32
+	MaxFee   *float32
+	Tags     []string
+}
+
 type EventRepo interface {
 	Save(*Event) error
 	FindByID(string) (*Event, error)
 	FindAll() ([]*Event, error)
+	FindAllWithFilters(filter *EventFilter) ([]*Event, error)
 	FindAllByTags(tagNames []string) ([]*Event, error)
 	RegisterAttendance(userID, eventID string) error
 	GetAttendees(eventID string) ([]string, error)

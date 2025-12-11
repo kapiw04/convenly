@@ -26,6 +26,10 @@ func (s *EventService) GetAllEvents() ([]*event.Event, error) {
 	return s.eventRepo.FindAll()
 }
 
+func (s *EventService) GetEventsWithFilters(filter *event.EventFilter) ([]*event.Event, error) {
+	return s.eventRepo.FindAllWithFilters(filter)
+}
+
 func (s *EventService) RegisterAttendance(userID, eventID string) error {
 	return s.eventRepo.RegisterAttendance(userID, eventID)
 }
