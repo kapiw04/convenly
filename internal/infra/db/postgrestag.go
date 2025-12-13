@@ -62,7 +62,6 @@ func (r *PostgresTagRepo) FindByName(name string) (*event.Tag, error) {
 }
 
 func (r *PostgresTagRepo) CreateIfNotExists(name string) (*event.Tag, error) {
-	// First try to find existing tag
 	existing, err := r.FindByName(name)
 	if err != nil {
 		return nil, err
@@ -71,7 +70,6 @@ func (r *PostgresTagRepo) CreateIfNotExists(name string) (*event.Tag, error) {
 		return existing, nil
 	}
 
-	// Tag doesn't exist, create it
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
@@ -85,8 +83,6 @@ func (r *PostgresTagRepo) CreateIfNotExists(name string) (*event.Tag, error) {
 	var t event.Tag
 	err = row.Scan(&t.TagID, &t.Name)
 	if err != nil {
-		// If we get a duplicate key error here, try to find it again
-		// (race condition: another goroutine created it between our check and insert)
 		if existing, findErr := r.FindByName(name); findErr == nil && existing != nil {
 			return existing, nil
 		}

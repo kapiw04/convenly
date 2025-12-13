@@ -80,7 +80,7 @@ postgres://user:password@localhost:5432/database_name?sslmode=disable
 
 ### Attendances Table
 
-**Name:** `atttendances` (note: typo in migration)
+**Name:** `attendances`
 
 #### Columns
 

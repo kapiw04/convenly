@@ -88,3 +88,13 @@ tasks:
     cmds:
       - echo $(./scripts/find_tc_container.sh)
       - docker exec -it $(docker ps | awk '$2=="postgres" {print $1}') psql -U user -d db
+
+  "db:clean":
+    desc: Clean the database (truncate all tables and repopulate roles)
+    cmds:
+      - go run ./scripts/clean/main.go
+
+  "db:generate":
+    desc: Generate test data (10000 events by default)
+    cmds:
+      - go run ./scripts/benchmark/main.go -events=10000

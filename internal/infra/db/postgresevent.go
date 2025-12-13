@@ -439,19 +439,16 @@ func (p *PostgresEventRepo) Delete(eventID string) error {
 		return err
 	}
 
-	// Delete event_tag associations first (foreign key constraint)
 	_, err = p.DB.ExecContext(ctx, "DELETE FROM event_tag WHERE event_id = $1", eid)
 	if err != nil {
 		return err
 	}
 
-	// Delete attendance records
 	_, err = p.DB.ExecContext(ctx, "DELETE FROM attendance WHERE event_id = $1", eid)
 	if err != nil {
 		return err
 	}
 
-	// Delete the event itself
 	_, err = p.DB.ExecContext(ctx, "DELETE FROM events WHERE event_id = $1", eid)
 	return err
 }

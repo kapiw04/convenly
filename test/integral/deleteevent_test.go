@@ -164,7 +164,6 @@ func TestDeleteEvent_WithAttendees(t *testing.T) {
 
 		require.Equal(t, http.StatusOK, w.Code)
 
-		// Verify event is deleted
 		events, err = eventSrvc.GetAllEvents()
 		require.NoError(t, err)
 		require.Len(t, events, 0)

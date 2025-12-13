@@ -128,7 +128,6 @@ func (rt *Router) ListEventsHandler(w http.ResponseWriter, r *http.Request) {
 	if dateFrom := r.URL.Query().Get("date_from"); dateFrom != "" {
 		t, err := time.Parse(time.RFC3339, dateFrom)
 		if err != nil {
-			// Try parsing as date only (YYYY-MM-DD)
 			t, err = time.Parse("2006-01-02", dateFrom)
 			if err != nil {
 				ErrorResponse(w, http.StatusBadRequest, "invalid date_from format, use RFC3339 or YYYY-MM-DD")
@@ -304,7 +303,6 @@ func (rt *Router) DeleteEventHandler(w http.ResponseWriter, r *http.Request) {
 	eventId := chi.URLParam(r, "id")
 	userId := getUserId(r)
 
-	// Verify the user is the organizer of this event
 	eventData, err := rt.EventService.GetEventByID(eventId)
 	if err != nil {
 		ErrorResponse(w, http.StatusNotFound, "event not found")
