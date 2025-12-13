@@ -41,3 +41,15 @@ func (s *EventService) GetAttendees(eventID string) ([]string, error) {
 func (s *EventService) RemoveAttendance(userID, eventID string) error {
 	return s.eventRepo.RemoveAttendance(userID, eventID)
 }
+
+func (s *EventService) GetHostingEvents(userID string) ([]*event.Event, error) {
+	return s.eventRepo.FindByOrganizer(userID)
+}
+
+func (s *EventService) GetAttendingEvents(userID string) ([]*event.Event, error) {
+	return s.eventRepo.FindAttendingEvents(userID)
+}
+
+func (s *EventService) DeleteEvent(eventID string) error {
+	return s.eventRepo.Delete(eventID)
+}

@@ -265,6 +265,66 @@ func (rt *Router) RegisterForEventHandler(w http.ResponseWriter, r *http.Request
 	JSONResponse(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
+func (rt *Router) MyEventsHandler(w http.ResponseWriter, r *http.Request) {
+	userId := getUserId(r)
+	if userId == "" {
+		ErrorResponse(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	hosting, err := rt.EventService.GetHostingEvents(userId)
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, "failed to get hosting events: "+err.Error())
+		return
+	}
+
+	attending, err := rt.EventService.GetAttendingEvents(userId)
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, "failed to get attending events: "+err.Error())
+		return
+	}
+
+	if hosting == nil {
+		hosting = []*event.Event{}
+	}
+	if attending == nil {
+		attending = []*event.Event{}
+	}
+
+	JSONResponse(w, http.StatusOK, struct {
+		Hosting   []*event.Event `json:"hosting"`
+		Attending []*event.Event `json:"attending"`
+	}{
+		Hosting:   hosting,
+		Attending: attending,
+	})
+}
+
+func (rt *Router) DeleteEventHandler(w http.ResponseWriter, r *http.Request) {
+	eventId := chi.URLParam(r, "id")
+	userId := getUserId(r)
+
+	// Verify the user is the organizer of this event
+	eventData, err := rt.EventService.GetEventByID(eventId)
+	if err != nil {
+		ErrorResponse(w, http.StatusNotFound, "event not found")
+		return
+	}
+
+	if eventData.OrganizerID != userId {
+		ErrorResponse(w, http.StatusForbidden, "you can only delete your own events")
+		return
+	}
+
+	err = rt.EventService.DeleteEvent(eventId)
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, "failed to delete event: "+err.Error())
+		return
+	}
+
+	JSONResponse(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
 func (rt *Router) HealthHandler(w http.ResponseWriter, r *http.Request) {
 	JSONResponse(w, http.StatusOK, map[string]string{"status": "ok"})
 }

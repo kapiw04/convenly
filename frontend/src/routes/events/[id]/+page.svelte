@@ -19,7 +19,8 @@
 		IconCheck,
 		IconAlertCircle,
 		IconUsers,
-		IconTag
+		IconTag,
+		IconTrash
 	} from '@tabler/icons-svelte';
 
 	interface Event {
@@ -44,6 +45,8 @@
 	let registrationSuccess = $state(false);
 	let registrationError = $state('');
 	let isRegistered = $state(false);
+	let isDeleting = $state(false);
+	let deleteError = $state('');
 
 	const eventId = $page.params.id;
 
@@ -165,6 +168,37 @@
 
 	function formatFee(fee: number): string {
 		return fee === 0 ? 'Free' : `$${fee.toFixed(2)}`;
+	}
+
+	async function handleDelete() {
+		if (!$user || !event) {
+			return;
+		}
+
+		if (!confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
+			return;
+		}
+
+		isDeleting = true;
+		deleteError = '';
+
+		try {
+			const response = await fetch(`${api}/api/events/${eventId}`, {
+				method: 'DELETE',
+				credentials: 'include'
+			});
+
+			if (response.ok) {
+				goto('/events/my');
+			} else {
+				const data = await response.json();
+				deleteError = data.error || 'Failed to delete event';
+			}
+		} catch (err) {
+			deleteError = 'An error occurred while deleting the event';
+		} finally {
+			isDeleting = false;
+		}
 	}
 </script>
 
@@ -371,6 +405,26 @@
 								<div class="text-center p-4 bg-muted rounded-lg">
 									<p class="text-sm font-medium">You are the organizer of this event</p>
 								</div>
+								{#if deleteError}
+									<Alert.Root variant="destructive" class="mt-2">
+										<IconAlertCircle class="h-4 w-4" />
+										<Alert.Description>{deleteError}</Alert.Description>
+									</Alert.Root>
+								{/if}
+								<Button
+									variant="destructive"
+									class="w-full gap-2"
+									disabled={isDeleting}
+									onclick={handleDelete}
+								>
+									{#if isDeleting}
+										<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+										Deleting...
+									{:else}
+										<IconTrash class="w-4 h-4" />
+										Delete Event
+									{/if}
+								</Button>
 							{:else if isRegistered}
 								<div class="space-y-2">
 									<Button variant="outline" class="w-full gap-2" size="lg" disabled>

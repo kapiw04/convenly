@@ -48,6 +48,7 @@ func NewRouter(userService *app.UserService, eventService *app.EventService) *Ro
 		authR.Get("/api/me", router.GetUserInfoHandler)
 		authR.Post("/api/logout", router.LogoutHandler)
 		authR.Post("/api/become-host", router.BecomeHostHandler)
+		authR.Get("/api/my-events", router.MyEventsHandler)
 		authR.Get("/api/events/{id}", router.EventDetailHandler)
 		authR.Post("/api/events/{id}/register", router.RegisterForEventHandler)
 		authR.Delete("/api/events/{id}/unregister", router.UnregisterFromEventHandler)
@@ -55,6 +56,7 @@ func NewRouter(userService *app.UserService, eventService *app.EventService) *Ro
 		authR.Group(func(hostR chi.Router) {
 			hostR.Use(AclMiddleware(user.HOST))
 			hostR.Post("/api/events/add", router.CreateEventHandler)
+			hostR.Delete("/api/events/{id}", router.DeleteEventHandler)
 		})
 	})
 

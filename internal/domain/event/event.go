@@ -1,5 +1,7 @@
 package event
 
+//go:generate mockgen -destination=./mocks/mock_eventrepo.go -package mock_event . EventRepo
+
 import "time"
 
 type Event struct {
@@ -31,4 +33,7 @@ type EventRepo interface {
 	RegisterAttendance(userID, eventID string) error
 	GetAttendees(eventID string) ([]string, error)
 	RemoveAttendance(userID, eventID string) error
+	FindByOrganizer(userID string) ([]*Event, error)
+	FindAttendingEvents(userID string) ([]*Event, error)
+	Delete(eventID string) error
 }

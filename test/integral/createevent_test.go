@@ -88,7 +88,7 @@ func TestCreateEvent_InvalidDateFormat(t *testing.T) {
 			Latitude:    42.0,
 			Longitude:   21.37,
 			Fee:         10.0,
-			Date:        "2005-04-02", // Invalid format, should be RFC3339
+			Date:        "2005-04-02",
 		}
 		body, err := json.Marshal(req)
 		require.NoError(t, err)

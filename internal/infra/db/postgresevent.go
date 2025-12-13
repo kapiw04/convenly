@@ -348,4 +348,112 @@ func (p *PostgresEventRepo) FindAllWithFilters(filter *event.EventFilter) ([]*ev
 	return events, nil
 }
 
+func (p *PostgresEventRepo) FindByOrganizer(userID string) ([]*event.Event, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	uid, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	query := `SELECT event_id, name, description, date, latitude, longitude, fee, organizer_id 
+			  FROM events WHERE organizer_id = $1 ORDER BY date ASC`
+	rows, err := p.DB.QueryContext(ctx, query, uid)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var events []*event.Event
+	for rows.Next() {
+		var e event.Event
+		if err := rows.Scan(&e.EventID, &e.Name, &e.Description, &e.Date, &e.Latitude, &e.Longitude, &e.Fee, &e.OrganizerID); err != nil {
+			return nil, err
+		}
+		events = append(events, &e)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	for _, e := range events {
+		tags, err := findTagNames(p, e.EventID)
+		if err != nil {
+			return nil, err
+		}
+		e.Tags = tags
+	}
+
+	return events, nil
+}
+
+func (p *PostgresEventRepo) FindAttendingEvents(userID string) ([]*event.Event, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	uid, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	query := `SELECT e.event_id, e.name, e.description, e.date, e.latitude, e.longitude, e.fee, e.organizer_id 
+			  FROM events e
+			  INNER JOIN attendance a ON a.event_id = e.event_id
+			  WHERE a.user_id = $1 ORDER BY e.date ASC`
+	rows, err := p.DB.QueryContext(ctx, query, uid)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var events []*event.Event
+	for rows.Next() {
+		var e event.Event
+		if err := rows.Scan(&e.EventID, &e.Name, &e.Description, &e.Date, &e.Latitude, &e.Longitude, &e.Fee, &e.OrganizerID); err != nil {
+			return nil, err
+		}
+		events = append(events, &e)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	for _, e := range events {
+		tags, err := findTagNames(p, e.EventID)
+		if err != nil {
+			return nil, err
+		}
+		e.Tags = tags
+	}
+
+	return events, nil
+}
+
+func (p *PostgresEventRepo) Delete(eventID string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	eid, err := uuid.Parse(eventID)
+	if err != nil {
+		return err
+	}
+
+	// Delete event_tag associations first (foreign key constraint)
+	_, err = p.DB.ExecContext(ctx, "DELETE FROM event_tag WHERE event_id = $1", eid)
+	if err != nil {
+		return err
+	}
+
+	// Delete attendance records
+	_, err = p.DB.ExecContext(ctx, "DELETE FROM attendance WHERE event_id = $1", eid)
+	if err != nil {
+		return err
+	}
+
+	// Delete the event itself
+	_, err = p.DB.ExecContext(ctx, "DELETE FROM events WHERE event_id = $1", eid)
+	return err
+}
+
 var _ event.EventRepo = &PostgresEventRepo{}

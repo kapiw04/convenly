@@ -204,7 +204,11 @@
 				</Card.Header>
 				<Card.Content>
 					<div class="space-y-3">
-						<Button variant="outline" class="w-full justify-start" onclick={() => goto('/events')}>
+						<Button
+							variant="outline"
+							class="w-full justify-start"
+							onclick={() => goto('/events/my')}
+						>
 							<IconCalendarEvent class="size-4 mr-2" />
 							My Events
 						</Button>

@@ -224,3 +224,131 @@ func TestEventService_RemoveAttendance_Error(t *testing.T) {
 
 	require.Error(t, err)
 }
+
+func TestEventService_GetHostingEvents_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	eventRepo := mock_event.NewMockEventRepo(ctrl)
+
+	expected := []*event.Event{
+		{EventID: "event-1", Name: "Hosted Event 1", OrganizerID: "user-1"},
+		{EventID: "event-2", Name: "Hosted Event 2", OrganizerID: "user-1"},
+	}
+
+	eventRepo.EXPECT().FindByOrganizer("user-1").Return(expected, nil)
+
+	svc := NewEventService(eventRepo)
+	result, err := svc.GetHostingEvents("user-1")
+
+	require.NoError(t, err)
+	require.Len(t, result, 2)
+	require.Equal(t, expected, result)
+}
+
+func TestEventService_GetHostingEvents_Error(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	eventRepo := mock_event.NewMockEventRepo(ctrl)
+
+	eventRepo.EXPECT().FindByOrganizer("user-1").Return(nil, errors.New("database error"))
+
+	svc := NewEventService(eventRepo)
+	_, err := svc.GetHostingEvents("user-1")
+
+	require.Error(t, err)
+}
+
+func TestEventService_GetHostingEvents_Empty(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	eventRepo := mock_event.NewMockEventRepo(ctrl)
+
+	eventRepo.EXPECT().FindByOrganizer("user-1").Return([]*event.Event{}, nil)
+
+	svc := NewEventService(eventRepo)
+	result, err := svc.GetHostingEvents("user-1")
+
+	require.NoError(t, err)
+	require.Len(t, result, 0)
+}
+
+func TestEventService_GetAttendingEvents_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	eventRepo := mock_event.NewMockEventRepo(ctrl)
+
+	expected := []*event.Event{
+		{EventID: "event-1", Name: "Attending Event 1"},
+		{EventID: "event-2", Name: "Attending Event 2"},
+	}
+
+	eventRepo.EXPECT().FindAttendingEvents("user-1").Return(expected, nil)
+
+	svc := NewEventService(eventRepo)
+	result, err := svc.GetAttendingEvents("user-1")
+
+	require.NoError(t, err)
+	require.Len(t, result, 2)
+	require.Equal(t, expected, result)
+}
+
+func TestEventService_GetAttendingEvents_Error(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	eventRepo := mock_event.NewMockEventRepo(ctrl)
+
+	eventRepo.EXPECT().FindAttendingEvents("user-1").Return(nil, errors.New("database error"))
+
+	svc := NewEventService(eventRepo)
+	_, err := svc.GetAttendingEvents("user-1")
+
+	require.Error(t, err)
+}
+
+func TestEventService_GetAttendingEvents_Empty(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	eventRepo := mock_event.NewMockEventRepo(ctrl)
+
+	eventRepo.EXPECT().FindAttendingEvents("user-1").Return([]*event.Event{}, nil)
+
+	svc := NewEventService(eventRepo)
+	result, err := svc.GetAttendingEvents("user-1")
+
+	require.NoError(t, err)
+	require.Len(t, result, 0)
+}
+
+func TestEventService_DeleteEvent_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	eventRepo := mock_event.NewMockEventRepo(ctrl)
+
+	eventRepo.EXPECT().Delete("event-1").Return(nil)
+
+	svc := NewEventService(eventRepo)
+	err := svc.DeleteEvent("event-1")
+
+	require.NoError(t, err)
+}
+
+func TestEventService_DeleteEvent_Error(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	eventRepo := mock_event.NewMockEventRepo(ctrl)
+
+	eventRepo.EXPECT().Delete("event-1").Return(errors.New("database error"))
+
+	svc := NewEventService(eventRepo)
+	err := svc.DeleteEvent("event-1")
+
+	require.Error(t, err)
+}
