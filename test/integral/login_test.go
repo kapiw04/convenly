@@ -261,3 +261,44 @@ func TestLogin_InvalidJSON(t *testing.T) {
 		assert.Contains(t, response, "error")
 	})
 }
+
+func TestLogin_SessionCookieIsSet(t *testing.T) {
+	sqlDb := setupDb(t)
+	userSrvc := setupUserService(t, sqlDb)
+	eventSrvc := setupEventService(t, sqlDb)
+	router := webapi.NewRouter(userSrvc, eventSrvc)
+
+	WithTx(t, sqlDb, func(t *testing.T, tx *sql.Tx) {
+		err := userSrvc.Register("Bob", "bob@example.com", "Secret123!")
+		require.NoError(t, err)
+
+		loginReq := webapi.LoginRequest{
+			Email:    "bob@example.com",
+			Password: "Secret123!",
+		}
+		body, err := json.Marshal(loginReq)
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/login", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		router.Handler.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code)
+
+		cookies := w.Result().Cookies()
+		var sessionCookie *http.Cookie
+		for _, c := range cookies {
+			if c.Name == "session-id" {
+				sessionCookie = c
+				break
+			}
+		}
+
+		require.NotNil(t, sessionCookie)
+		require.NotEmpty(t, sessionCookie.Value)
+		require.True(t, sessionCookie.HttpOnly)
+		require.True(t, sessionCookie.Secure)
+	})
+}

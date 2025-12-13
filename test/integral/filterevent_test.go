@@ -22,12 +22,10 @@ func TestFilterEvents_ByDateRange(t *testing.T) {
 		sessionID, err := userSrvc.Login("host@example.com", "Secret123!")
 		require.NoError(t, err)
 
-		// Create events with different dates
 		createEventWithDetails(t, router, sessionID, "January Event", "2025-01-15T10:00:00Z", 10.0, []string{})
 		createEventWithDetails(t, router, sessionID, "February Event", "2025-02-15T10:00:00Z", 20.0, []string{})
 		createEventWithDetails(t, router, sessionID, "March Event", "2025-03-15T10:00:00Z", 30.0, []string{})
 
-		// Filter events from Feb onwards
 		req := httptest.NewRequest(http.MethodGet, "/api/events?date_from=2025-02-01", nil)
 		w := httptest.NewRecorder()
 		router.Handler.ServeHTTP(w, req)
@@ -41,7 +39,6 @@ func TestFilterEvents_ByDateRange(t *testing.T) {
 		require.Equal(t, "February Event", events[0].Name)
 		require.Equal(t, "March Event", events[1].Name)
 
-		// Filter events until Feb
 		req = httptest.NewRequest(http.MethodGet, "/api/events?date_to=2025-02-28", nil)
 		w = httptest.NewRecorder()
 		router.Handler.ServeHTTP(w, req)
@@ -54,7 +51,6 @@ func TestFilterEvents_ByDateRange(t *testing.T) {
 		require.Equal(t, "January Event", events[0].Name)
 		require.Equal(t, "February Event", events[1].Name)
 
-		// Filter events in Feb only
 		req = httptest.NewRequest(http.MethodGet, "/api/events?date_from=2025-02-01&date_to=2025-02-28", nil)
 		w = httptest.NewRecorder()
 		router.Handler.ServeHTTP(w, req)
@@ -66,7 +62,6 @@ func TestFilterEvents_ByDateRange(t *testing.T) {
 		require.Len(t, events, 1)
 		require.Equal(t, "February Event", events[0].Name)
 
-		// Verify all events still exist
 		allEvents, err := eventSrvc.GetAllEvents()
 		require.NoError(t, err)
 		require.Len(t, allEvents, 3)
@@ -81,12 +76,10 @@ func TestFilterEvents_ByFeeRange(t *testing.T) {
 		sessionID, err := userSrvc.Login("host@example.com", "Secret123!")
 		require.NoError(t, err)
 
-		// Create events with different fees
 		createEventWithDetails(t, router, sessionID, "Free Event", "2025-01-15T10:00:00Z", 0.0, []string{})
 		createEventWithDetails(t, router, sessionID, "Cheap Event", "2025-02-15T10:00:00Z", 10.0, []string{})
 		createEventWithDetails(t, router, sessionID, "Expensive Event", "2025-03-15T10:00:00Z", 100.0, []string{})
 
-		// Filter free events only
 		req := httptest.NewRequest(http.MethodGet, "/api/events?max_fee=0", nil)
 		w := httptest.NewRecorder()
 		router.Handler.ServeHTTP(w, req)
@@ -99,7 +92,6 @@ func TestFilterEvents_ByFeeRange(t *testing.T) {
 		require.Len(t, events, 1)
 		require.Equal(t, "Free Event", events[0].Name)
 
-		// Filter events with fee >= 10
 		req = httptest.NewRequest(http.MethodGet, "/api/events?min_fee=10", nil)
 		w = httptest.NewRecorder()
 		router.Handler.ServeHTTP(w, req)
@@ -112,7 +104,6 @@ func TestFilterEvents_ByFeeRange(t *testing.T) {
 		require.Equal(t, "Cheap Event", events[0].Name)
 		require.Equal(t, "Expensive Event", events[1].Name)
 
-		// Filter events with fee between 5 and 50
 		req = httptest.NewRequest(http.MethodGet, "/api/events?min_fee=5&max_fee=50", nil)
 		w = httptest.NewRecorder()
 		router.Handler.ServeHTTP(w, req)
@@ -124,7 +115,6 @@ func TestFilterEvents_ByFeeRange(t *testing.T) {
 		require.Len(t, events, 1)
 		require.Equal(t, "Cheap Event", events[0].Name)
 
-		// Verify all events still exist
 		allEvents, err := eventSrvc.GetAllEvents()
 		require.NoError(t, err)
 		require.Len(t, allEvents, 3)
@@ -139,12 +129,10 @@ func TestFilterEvents_ByTags(t *testing.T) {
 		sessionID, err := userSrvc.Login("host@example.com", "Secret123!")
 		require.NoError(t, err)
 
-		// Create events with different tags
 		createEventWithDetails(t, router, sessionID, "Music Festival", "2025-01-15T10:00:00Z", 50.0, []string{"Music"})
 		createEventWithDetails(t, router, sessionID, "Tech Conference", "2025-02-15T10:00:00Z", 100.0, []string{"Tech"})
 		createEventWithDetails(t, router, sessionID, "Music & Tech Event", "2025-03-15T10:00:00Z", 75.0, []string{"Music", "Tech"})
 
-		// Filter by Music tag
 		req := httptest.NewRequest(http.MethodGet, "/api/events?tags=Music", nil)
 		w := httptest.NewRecorder()
 		router.Handler.ServeHTTP(w, req)
@@ -156,7 +144,6 @@ func TestFilterEvents_ByTags(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, events, 2)
 
-		// Filter by Tech tag
 		req = httptest.NewRequest(http.MethodGet, "/api/events?tags=Tech", nil)
 		w = httptest.NewRecorder()
 		router.Handler.ServeHTTP(w, req)
@@ -167,7 +154,6 @@ func TestFilterEvents_ByTags(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, events, 2)
 
-		// Filter by both tags (should match events with either tag)
 		req = httptest.NewRequest(http.MethodGet, "/api/events?tags=Music,Tech", nil)
 		w = httptest.NewRecorder()
 		router.Handler.ServeHTTP(w, req)
@@ -178,7 +164,6 @@ func TestFilterEvents_ByTags(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, events, 3)
 
-		// Verify all events still exist
 		allEvents, err := eventSrvc.GetAllEvents()
 		require.NoError(t, err)
 		require.Len(t, allEvents, 3)
@@ -192,14 +177,11 @@ func TestFilterEvents_CombinedFilters(t *testing.T) {
 		registerAndPromoteHost(t, userSrvc, "host@example.com", "Secret123!")
 		sessionID, err := userSrvc.Login("host@example.com", "Secret123!")
 		require.NoError(t, err)
-
-		// Create diverse events
 		createEventWithDetails(t, router, sessionID, "Cheap Music January", "2025-01-15T10:00:00Z", 10.0, []string{"Music"})
 		createEventWithDetails(t, router, sessionID, "Expensive Music February", "2025-02-15T10:00:00Z", 100.0, []string{"Music"})
 		createEventWithDetails(t, router, sessionID, "Cheap Tech March", "2025-03-15T10:00:00Z", 15.0, []string{"Tech"})
 		createEventWithDetails(t, router, sessionID, "Expensive Tech April", "2025-04-15T10:00:00Z", 200.0, []string{"Tech"})
 
-		// Filter: Music events with max fee 50 in Q1
 		req := httptest.NewRequest(http.MethodGet, "/api/events?tags=Music&max_fee=50&date_from=2025-01-01&date_to=2025-03-31", nil)
 		w := httptest.NewRecorder()
 		router.Handler.ServeHTTP(w, req)
@@ -212,7 +194,6 @@ func TestFilterEvents_CombinedFilters(t *testing.T) {
 		require.Len(t, events, 1)
 		require.Equal(t, "Cheap Music January", events[0].Name)
 
-		// Filter: All cheap events (fee <= 20)
 		req = httptest.NewRequest(http.MethodGet, "/api/events?max_fee=20", nil)
 		w = httptest.NewRecorder()
 		router.Handler.ServeHTTP(w, req)
@@ -223,7 +204,6 @@ func TestFilterEvents_CombinedFilters(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, events, 2)
 
-		// Filter: Tech events after February
 		req = httptest.NewRequest(http.MethodGet, "/api/events?tags=Tech&date_from=2025-02-01", nil)
 		w = httptest.NewRecorder()
 		router.Handler.ServeHTTP(w, req)
@@ -246,7 +226,6 @@ func TestFilterEvents_NoResults(t *testing.T) {
 
 		createEventWithDetails(t, router, sessionID, "Test Event", "2025-06-15T10:00:00Z", 50.0, []string{"Music"})
 
-		// Filter with no matching results
 		req := httptest.NewRequest(http.MethodGet, "/api/events?max_fee=10", nil)
 		w := httptest.NewRecorder()
 		router.Handler.ServeHTTP(w, req)
@@ -306,7 +285,6 @@ func TestFilterEvents_NoFilters_ReturnsAll(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, events, 2)
 
-		// Verify with service
 		allEvents, err := eventSrvc.GetAllEvents()
 		require.NoError(t, err)
 		require.Len(t, allEvents, 2)

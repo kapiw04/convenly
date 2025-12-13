@@ -37,3 +37,30 @@ func Test_GetUserInfo(t *testing.T) {
 		require.NotEmpty(t, userResp.UUID)
 	})
 }
+
+func Test_GetUserInfo_Unauthorized(t *testing.T) {
+	sqlDb, _, _, router := setupAllServices(t)
+
+	WithTx(t, sqlDb, func(t *testing.T, tx *sql.Tx) {
+		req := httptest.NewRequest(http.MethodGet, "/api/me", nil)
+		w := httptest.NewRecorder()
+
+		router.Handler.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusUnauthorized, w.Code)
+	})
+}
+
+func Test_GetUserInfo_InvalidSession(t *testing.T) {
+	sqlDb, _, _, router := setupAllServices(t)
+
+	WithTx(t, sqlDb, func(t *testing.T, tx *sql.Tx) {
+		req := httptest.NewRequest(http.MethodGet, "/api/me", nil)
+		req.AddCookie(&http.Cookie{Name: "session-id", Value: "invalid-session-id"})
+		w := httptest.NewRecorder()
+
+		router.Handler.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusUnauthorized, w.Code)
+	})
+}

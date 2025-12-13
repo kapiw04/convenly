@@ -214,6 +214,34 @@ func TestCreateEvent_WithInvalidSessionID(t *testing.T) {
 	})
 }
 
+func TestCreateEvent_NonExistentTag(t *testing.T) {
+	sqlDb, userSrvc, _, router := setupAllServices(t)
+
+	WithTx(t, sqlDb, func(t *testing.T, tx *sql.Tx) {
+		registerAndPromoteHost(t, userSrvc, "bob@example.com", "Secret123!")
+		sessionID, err := userSrvc.Login("bob@example.com", "Secret123!")
+		require.NoError(t, err)
+
+		req := webapi.CreateEventRequest{
+			Name:        "Event Name",
+			Description: "Event desc",
+			Latitude:    42.0,
+			Longitude:   21.37,
+			Fee:         10.0,
+			Date:        "2025-12-31T23:59:59Z",
+			Tags:        []string{"NonExistentTag123"},
+		}
+		body, err := json.Marshal(req)
+		require.NoError(t, err)
+
+		httpReq := newEventRequest(t, body, sessionID)
+		w := httptest.NewRecorder()
+		router.Handler.ServeHTTP(w, httpReq)
+
+		require.Equal(t, http.StatusBadRequest, w.Code)
+	})
+}
+
 func registerAndPromoteHost(t *testing.T, userSrvc *app.UserService, email, password string) {
 	t.Helper()
 	err := userSrvc.Register("Bob", email, password)
