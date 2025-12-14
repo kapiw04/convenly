@@ -50,7 +50,7 @@ This starts:
 
 ### 4. Verify Setup
 ```bash
-curl http://localhost:8080/health
+curl http://localhost:8080/api/health
 ```
 
 Expected response:
@@ -63,11 +63,20 @@ Expected response:
 
 ### Using Task (if installed)
 ```bash
-task build         # Build the application
-task run           # Run the application
-task test          # Run tests
-task migrate-up    # Run database migrations
-task migrate-down  # Rollback migrations
+task build
+task run
+task test
+task fmt
+task tidy
+task generate
+task clean
+task dev:up
+task dev:down
+task migrations
+task enter-postgres
+task db:clean
+task db:generate
+task db:bench
 ```
 
 ### Using Go Directly
@@ -79,11 +88,11 @@ go test ./...
 
 ### Using Docker Compose
 ```bash
-docker compose up -d       # Start services
-docker compose logs -f     # View logs
-docker compose down        # Stop services
-docker compose ps          # List running services
-docker compose exec db psql -U ${POSTGRES_USER} -d ${POSTGRES_DB}  # Access database
+docker compose up -d
+docker compose logs -f
+docker compose down
+docker compose ps
+docker compose exec db psql -U ${POSTGRES_USER} -d ${POSTGRES_DB}
 ```
 
 ---
@@ -93,7 +102,7 @@ docker compose exec db psql -U ${POSTGRES_USER} -d ${POSTGRES_DB}  # Access data
 ### Unit Tests
 Unit tests are located alongside the implementation files:
 ```bash
-go test ./internal/infra/api -v
+go test ./internal/... -v
 ```
 
 ### Integration Tests

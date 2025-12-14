@@ -2,7 +2,21 @@
 
 ## Overview
 
-The application uses **PostgreSQL** as the primary data store. Database schema is managed using migrations located in `internal/infra/db/migrations/`.
+### Attendance Table
+
+**Name:** `attendance`
+
+#### Columns
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `user_id` | UUID | FOREIGN KEY REFERENCES users(user_id) ON DELETE CASCADE, PRIMARY KEY | User identifier |
+| `event_id` | UUID | FOREIGN KEY REFERENCES events(event_id) ON DELETE CASCADE, PRIMARY KEY | Event identifier |
+
+
+---
+
+### Sessions Tablestore. Database schema is managed using migrations located in `internal/infra/db/migrations/`.
 
 ## Connection Details
 
@@ -100,7 +114,7 @@ postgres://user:password@localhost:5432/database_name?sslmode=disable
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `tag_id` | UUID | PRIMARY KEY | Unique tag identifier |
+| `tag_id` | BIGINT | PRIMARY KEY, GENERATED ALWAYS AS IDENTITY | Unique tag identifier |
 | `name` | TEXT | UNIQUE, NOT NULL | Tag name |
 
 ---
@@ -114,7 +128,7 @@ postgres://user:password@localhost:5432/database_name?sslmode=disable
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `event_id` | UUID | FOREIGN KEY REFERENCES events(event_id), PRIMARY KEY | Event identifier |
-| `tag_id` | UUID | FOREIGN KEY REFERENCES tags(tag_id), PRIMARY KEY | Tag identifier |
+| `tag_id` | BIGINT | FOREIGN KEY REFERENCES tags(tag_id), PRIMARY KEY | Tag identifier |
 
 ---
 

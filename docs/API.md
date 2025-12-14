@@ -2,14 +2,14 @@
 
 ## Base URL
 ```
-http://localhost:8080
+http://localhost:8080/api
 ```
 
 ## Endpoints
 
 ### Health Check
 
-#### `GET /health`
+#### `GET /api/health`
 Returns the health status of the API.
 
 **Response:**
@@ -25,7 +25,7 @@ Returns the health status of the API.
 
 ### User Registration
 
-#### `POST /register`
+#### `POST /api/register`
 Creates a new user account with the provided credentials.
 
 **Request Body:**
@@ -59,7 +59,7 @@ Creates a new user account with the provided credentials.
 
 **Example cURL Request:**
 ```bash
-curl -X POST http://localhost:8080/register \
+curl -X POST http://localhost:8080/api/register \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Alice Smith",
@@ -72,7 +72,7 @@ curl -X POST http://localhost:8080/register \
 
 ### User Login
 
-#### `POST /login`
+#### `POST /api/login`
 Authenticates an existing user and returns a session token that can be used for future requests.
 
 **Request Body:**
@@ -92,17 +92,21 @@ Authenticates an existing user and returns a session token that can be used for 
 **Successful Response:**
 ```json
 {
-  "status": "ok"
+  "user_id": "123e4567-e89b-12d3-a456-426614174000",
+  "email": "alice@example.com",
+  "name": "Alice Smith",
+  "role": 0,
+  "created_at": "2025-12-14T10:00:00Z"
 }
 ```
 **Status Code:** `200 OK`
 
 **Response Headers:**
-- `Set-Cookie: session_id=<session-token>; HttpOnly; Secure`
+- `Set-Cookie: session-id=<session-token>; HttpOnly; Secure`
 
 **Example cURL Request:**
 ```bash
-curl -X POST http://localhost:8080/login \
+curl -X POST http://localhost:8080/api/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "alice@example.com",
@@ -114,15 +118,10 @@ curl -X POST http://localhost:8080/login \
 
 ### User Logout
 
-#### `POST /logout`
+#### `POST /api/logout`
 Logs out the current user by invalidating their session token.
 
-**Authentication Required:** Yes (via `Authorization` header)
-
-**Request Headers:**
-| Header | Value | Required | Description |
-|--------|-------|----------|-------------|
-| `Authorization` | `<session-token>` | Yes | Session token obtained from login |
+**Authentication Required:** Yes (via `session-id` cookie)
 
 **Successful Response:**
 ```json
@@ -142,8 +141,64 @@ Logs out the current user by invalidating their session token.
 
 **Example cURL Request:**
 ```bash
-curl -X POST http://localhost:8080/logout \
-  -H "Authorization: <session-token>"
+curl -X POST http://localhost:8080/api/logout \
+  -H "Cookie: session-id=<session-token>"
+```
+
+---
+
+### Get Current User Info
+
+#### `GET /api/me`
+Returns information about the currently authenticated user.
+
+**Authentication Required:** Yes (via `session-id` cookie)
+
+**Successful Response:**
+```json
+{
+  "user_id": "123e4567-e89b-12d3-a456-426614174000",
+  "email": "alice@example.com",
+  "name": "Alice Smith",
+  "role": 0,
+  "created_at": "2025-12-14T10:00:00Z"
+}
+```
+**Status Code:** `200 OK`
+
+**Role Values:**
+| Value | Role |
+|-------|------|
+| 0 | Attendee |
+| 1 | Host |
+
+**Example cURL Request:**
+```bash
+curl -X GET http://localhost:8080/api/me \
+  -H "Cookie: session-id=<session-token>"
+```
+
+---
+
+### Become Host
+
+#### `POST /api/become-host`
+Promotes the current user from Attendee to Host role. Hosts can create events.
+
+**Authentication Required:** Yes (via `session-id` cookie)
+
+**Successful Response:**
+```json
+{
+  "status": "ok"
+}
+```
+**Status Code:** `200 OK`
+
+**Example cURL Request:**
+```bash
+curl -X POST http://localhost:8080/api/become-host \
+  -H "Cookie: session-id=<session-token>"
 ```
 
 ---
@@ -152,10 +207,11 @@ curl -X POST http://localhost:8080/logout \
 
 ### Create Event
 
-#### `POST /events/add`
-Creates a new event. Only authenticated users can create events.
+#### `POST /api/events/add`
+Creates a new event. Only authenticated users with Host role can create events.
 
-**Authentication Required:** Yes (via `session_id` cookie)
+**Authentication Required:** Yes (via `session-id` cookie)
+**Authorization Required:** Host role
 
 **Request Body:**
 ```json
@@ -165,7 +221,8 @@ Creates a new event. Only authenticated users can create events.
   "date": "2025-12-15T09:00:00Z",
   "latitude": 52.2297,
   "longitude": 21.0122,
-  "fee": 99.99
+  "fee": 99.99,
+  "tags": ["technology", "networking"]
 }
 ```
 
@@ -178,6 +235,7 @@ Creates a new event. Only authenticated users can create events.
 | `latitude` | float64 | Yes | Latitude coordinate of event location |
 | `longitude` | float64 | Yes | Longitude coordinate of event location |
 | `fee` | float32 | Yes | Event entrance fee |
+| `tags` | string[] | No | Array of tag names for the event |
 
 **Successful Response:**
 ```json
@@ -197,26 +255,27 @@ Unauthorized (missing or invalid session):
 ```
 **Status Code:** `401 Unauthorized`
 
-Bad request (invalid data):
+Forbidden (user is not a Host):
 ```json
 {
-  "error": "bad request: <error details>"
+  "error": "forbidden"
 }
 ```
-**Status Code:** `400 Bad Request`
+**Status Code:** `403 Forbidden`
 
 **Example cURL Request:**
 ```bash
-curl -X POST http://localhost:8080/events/add \
+curl -X POST http://localhost:8080/api/events/add \
   -H "Content-Type: application/json" \
-  -H "Cookie: session_id=<session-token>" \
+  -H "Cookie: session-id=<session-token>" \
   -d '{
     "name": "Tech Conference 2025",
     "description": "Annual technology conference",
     "date": "2025-12-15T09:00:00Z",
     "latitude": 52.2297,
     "longitude": 21.0122,
-    "fee": 99.99
+    "fee": 99.99,
+    "tags": ["technology"]
   }'
 ```
 
@@ -224,40 +283,238 @@ curl -X POST http://localhost:8080/events/add \
 
 ### List All Events
 
-#### `GET /events`
-Retrieves a list of all events.
+#### `GET /api/events`
+Retrieves a list of all events with optional filtering and pagination.
 
-**Authentication Required:** Yes (via `session_id` cookie)
+**Authentication Required:** No
+
+**Query Parameters:**
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `page` | int | No | Page number (starting from 1) |
+| `page_size` | int | No | Number of items per page (1-100, default: 12) |
+| `date_from` | string | No | Filter events from this date (RFC3339 or YYYY-MM-DD) |
+| `date_to` | string | No | Filter events until this date (RFC3339 or YYYY-MM-DD) |
+| `min_fee` | float | No | Minimum event fee |
+| `max_fee` | float | No | Maximum event fee |
+| `tags` | string | No | Comma-separated list of tag names |
 
 **Successful Response:**
 ```json
 [
   {
-    "EventID": "123e4567-e89b-12d3-a456-426614174000",
-    "Name": "Tech Conference 2025",
-    "Description": "Annual technology conference",
-    "Date": "2025-12-15T09:00:00Z",
-    "Latitude": 52.2297,
-    "Longitude": 21.0122,
-    "Fee": 99.99,
-    "OrganizerID": "987fcdeb-51a2-43d7-9abc-123456789def"
+    "event_id": "123e4567-e89b-12d3-a456-426614174000",
+    "name": "Tech Conference 2025",
+    "description": "Annual technology conference",
+    "date": "2025-12-15T09:00:00Z",
+    "latitude": 52.2297,
+    "longitude": 21.0122,
+    "fee": 99.99,
+    "organizer_id": "987fcdeb-51a2-43d7-9abc-123456789def",
+    "tag": ["technology", "networking"]
   }
 ]
 ```
 **Status Code:** `200 OK`
 
-**Error Response:**
+**Example cURL Requests:**
+```bash
+curl -X GET http://localhost:8080/api/events
 
-Unauthorized (missing or invalid session):
+curl -X GET "http://localhost:8080/api/events?page=1&page_size=10"
+
+curl -X GET "http://localhost:8080/api/events?date_from=2025-01-01&max_fee=50&tags=music,outdoor"
+```
+
+---
+
+### Get Event Details
+
+#### `GET /api/events/{id}`
+Retrieves detailed information about a specific event including attendee count.
+
+**Authentication Required:** Yes (via `session-id` cookie)
+
+**URL Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | UUID | Event identifier |
+
+**Successful Response:**
 ```json
 {
-  "error": "unauthorized"
+  "event_id": "123e4567-e89b-12d3-a456-426614174000",
+  "name": "Tech Conference 2025",
+  "description": "Annual technology conference",
+  "date": "2025-12-15T09:00:00Z",
+  "latitude": 52.2297,
+  "longitude": 21.0122,
+  "fee": 99.99,
+  "organizer_id": "987fcdeb-51a2-43d7-9abc-123456789def",
+  "tag": ["technology"],
+  "attendees_count": 42,
+  "user_registered": true
 }
 ```
-**Status Code:** `401 Unauthorized`
+**Status Code:** `200 OK`
+
+**Response Fields:**
+| Field | Type | Description |
+|-------|------|-------------|
+| `attendees_count` | int | Number of users registered for this event |
+| `user_registered` | bool | Whether the current user is registered for this event |
 
 **Example cURL Request:**
 ```bash
-curl -X GET http://localhost:8080/events \
-  -H "Cookie: session_id=<session-token>"
+curl -X GET http://localhost:8080/api/events/123e4567-e89b-12d3-a456-426614174000 \
+  -H "Cookie: session-id=<session-token>"
+```
+
+---
+
+### Register for Event
+
+#### `POST /api/events/{id}/register`
+Registers the current user as an attendee for the specified event.
+
+**Authentication Required:** Yes (via `session-id` cookie)
+
+**URL Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | UUID | Event identifier |
+
+**Successful Response:**
+```json
+{
+  "status": "ok"
+}
+```
+**Status Code:** `200 OK`
+
+**Example cURL Request:**
+```bash
+curl -X POST http://localhost:8080/api/events/123e4567-e89b-12d3-a456-426614174000/register \
+  -H "Cookie: session-id=<session-token>"
+```
+
+---
+
+### Unregister from Event
+
+#### `DELETE /api/events/{id}/unregister`
+Removes the current user's registration from the specified event.
+
+**Authentication Required:** Yes (via `session-id` cookie)
+
+**URL Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | UUID | Event identifier |
+
+**Successful Response:**
+```json
+{
+  "status": "ok"
+}
+```
+**Status Code:** `200 OK`
+
+**Example cURL Request:**
+```bash
+curl -X DELETE http://localhost:8080/api/events/123e4567-e89b-12d3-a456-426614174000/unregister \
+  -H "Cookie: session-id=<session-token>"
+```
+
+---
+
+### Delete Event
+
+#### `DELETE /api/events/{id}`
+Deletes the specified event. Only the event organizer can delete their own events.
+
+**Authentication Required:** Yes (via `session-id` cookie)
+**Authorization Required:** Host role + Event owner
+
+**URL Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | UUID | Event identifier |
+
+**Successful Response:**
+```json
+{
+  "status": "ok"
+}
+```
+**Status Code:** `200 OK`
+
+**Error Responses:**
+
+Event not found:
+```json
+{
+  "error": "event not found"
+}
+```
+**Status Code:** `404 Not Found`
+
+Not the event owner:
+```json
+{
+  "error": "you can only delete your own events"
+}
+```
+**Status Code:** `403 Forbidden`
+
+**Example cURL Request:**
+```bash
+curl -X DELETE http://localhost:8080/api/events/123e4567-e89b-12d3-a456-426614174000 \
+  -H "Cookie: session-id=<session-token>"
+```
+
+---
+
+### Get My Events
+
+#### `GET /api/my-events`
+Retrieves events that the current user is hosting or attending.
+
+**Authentication Required:** Yes (via `session-id` cookie)
+
+**Successful Response:**
+```json
+{
+  "hosting": [
+    {
+      "event_id": "123e4567-e89b-12d3-a456-426614174000",
+      "name": "Tech Conference 2025",
+      "description": "Annual technology conference",
+      "date": "2025-12-15T09:00:00Z",
+      "latitude": 52.2297,
+      "longitude": 21.0122,
+      "fee": 99.99,
+      "organizer_id": "987fcdeb-51a2-43d7-9abc-123456789def"
+    }
+  ],
+  "attending": [
+    {
+      "event_id": "456e7890-e89b-12d3-a456-426614174000",
+      "name": "Music Festival",
+      "description": "Summer music festival",
+      "date": "2025-07-20T18:00:00Z",
+      "latitude": 51.5074,
+      "longitude": -0.1278,
+      "fee": 150.00,
+      "organizer_id": "111fcdeb-51a2-43d7-9abc-123456789def"
+    }
+  ]
+}
+```
+**Status Code:** `200 OK`
+
+**Example cURL Request:**
+```bash
+curl -X GET http://localhost:8080/api/my-events \
+  -H "Cookie: session-id=<session-token>"
 ```
