@@ -319,6 +319,11 @@ func (p *PostgresEventRepo) FindAllWithFilters(filter *event.EventFilter) ([]*ev
 
 	query += " ORDER BY e.date ASC"
 
+	if filter.Pagination != nil && filter.Pagination.Limit() > 0 {
+		query += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIndex, argIndex+1)
+		args = append(args, filter.Pagination.Limit(), filter.Pagination.Offset())
+	}
+
 	rows, err := p.DB.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
@@ -348,7 +353,7 @@ func (p *PostgresEventRepo) FindAllWithFilters(filter *event.EventFilter) ([]*ev
 	return events, nil
 }
 
-func (p *PostgresEventRepo) FindByOrganizer(userID string) ([]*event.Event, error) {
+func (p *PostgresEventRepo) FindByOrganizer(userID string, pagination *event.Pagination) ([]*event.Event, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
@@ -359,7 +364,14 @@ func (p *PostgresEventRepo) FindByOrganizer(userID string) ([]*event.Event, erro
 
 	query := `SELECT event_id, name, description, date, latitude, longitude, fee, organizer_id 
 			  FROM events WHERE organizer_id = $1 ORDER BY date ASC`
-	rows, err := p.DB.QueryContext(ctx, query, uid)
+	args := []any{uid}
+
+	if pagination != nil && pagination.Limit() > 0 {
+		query += " LIMIT $2 OFFSET $3"
+		args = append(args, pagination.Limit(), pagination.Offset())
+	}
+
+	rows, err := p.DB.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -388,7 +400,7 @@ func (p *PostgresEventRepo) FindByOrganizer(userID string) ([]*event.Event, erro
 	return events, nil
 }
 
-func (p *PostgresEventRepo) FindAttendingEvents(userID string) ([]*event.Event, error) {
+func (p *PostgresEventRepo) FindAttendingEvents(userID string, pagination *event.Pagination) ([]*event.Event, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
@@ -401,7 +413,14 @@ func (p *PostgresEventRepo) FindAttendingEvents(userID string) ([]*event.Event, 
 			  FROM events e
 			  INNER JOIN attendance a ON a.event_id = e.event_id
 			  WHERE a.user_id = $1 ORDER BY e.date ASC`
-	rows, err := p.DB.QueryContext(ctx, query, uid)
+	args := []any{uid}
+
+	if pagination != nil && pagination.Limit() > 0 {
+		query += " LIMIT $2 OFFSET $3"
+		args = append(args, pagination.Limit(), pagination.Offset())
+	}
+
+	rows, err := p.DB.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}

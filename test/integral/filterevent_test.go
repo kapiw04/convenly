@@ -263,6 +263,39 @@ func TestFilterEvents_InvalidFeeFormat(t *testing.T) {
 	})
 }
 
+func TestFilterEvents_WithPagination(t *testing.T) {
+	sqlDb, userSrvc, _, router := setupAllServices(t)
+
+	WithTx(t, sqlDb, func(t *testing.T, tx *sql.Tx) {
+		registerAndPromoteHost(t, userSrvc, "host@example.com", "Secret123!")
+		sessionID, err := userSrvc.Login("host@example.com", "Secret123!")
+		require.NoError(t, err)
+
+		createEventWithDetails(t, router, sessionID, "Event 1", "2025-01-15T10:00:00Z", 10.0, []string{})
+		createEventWithDetails(t, router, sessionID, "Event 2", "2025-02-15T10:00:00Z", 20.0, []string{})
+
+		req := httptest.NewRequest(http.MethodGet, "/api/events?page=1&page_size=1", nil)
+		w := httptest.NewRecorder()
+		router.Handler.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code)
+		var events []*event.Event
+		err = json.Unmarshal(w.Body.Bytes(), &events)
+		require.NoError(t, err)
+		require.Len(t, events, 1)
+
+		req = httptest.NewRequest(http.MethodGet, "/api/events?page=2&page_size=1", nil)
+		w = httptest.NewRecorder()
+		router.Handler.ServeHTTP(w, req)
+
+		events = []*event.Event{}
+		require.Equal(t, http.StatusOK, w.Code)
+		err = json.Unmarshal(w.Body.Bytes(), &events)
+		require.NoError(t, err)
+		require.Len(t, events, 1)
+	})
+}
+
 func TestFilterEvents_NoFilters_ReturnsAll(t *testing.T) {
 	sqlDb, userSrvc, eventSrvc, router := setupAllServices(t)
 

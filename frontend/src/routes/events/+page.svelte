@@ -11,7 +11,13 @@
 	import { Label } from '$lib/components/ui/label';
 	import { user } from '$lib/stores/user';
 	import { AVAILABLE_TAGS } from '$lib/constants/tags';
-	import { IconSearch, IconX, IconFilter } from '@tabler/icons-svelte';
+	import {
+		IconSearch,
+		IconX,
+		IconFilter,
+		IconChevronLeft,
+		IconChevronRight
+	} from '@tabler/icons-svelte';
 
 	interface Event {
 		event_id: string;
@@ -23,6 +29,8 @@
 	}
 
 	const api = import.meta.env.VITE_API_URL;
+	const PAGE_SIZE = 12;
+
 	let events = $state<Event[]>([]);
 	let loading = $state(true);
 	let error = $state('');
@@ -37,6 +45,9 @@
 	let maxFee = $state('');
 	let freeOnly = $state(false);
 
+	let currentPage = $state(1);
+	let hasMorePages = $state(true);
+
 	function initFiltersFromUrl() {
 		const url = $page.url;
 		searchQuery = url.searchParams.get('q') || '';
@@ -47,6 +58,7 @@
 		minFee = url.searchParams.get('min_fee') || '';
 		maxFee = url.searchParams.get('max_fee') || '';
 		freeOnly = url.searchParams.get('free') === 'true';
+		currentPage = parseInt(url.searchParams.get('page') || '1', 10);
 
 		if (selectedTags.length > 0 || dateFrom || dateTo || minFee || maxFee || freeOnly) {
 			showFilters = true;
@@ -77,6 +89,9 @@
 			if (maxFee) {
 				params.set('max_fee', maxFee);
 			}
+		}
+		if (currentPage > 1) {
+			params.set('page', currentPage.toString());
 		}
 
 		const queryString = params.toString();
@@ -115,6 +130,7 @@
 		minFee = '';
 		maxFee = '';
 		freeOnly = false;
+		currentPage = 1;
 		updateUrl();
 		fetchEvents();
 	}
@@ -147,14 +163,19 @@
 				}
 			}
 
+			params.set('page', currentPage.toString());
+			params.set('page_size', PAGE_SIZE.toString());
+
 			const queryString = params.toString();
-			const url = queryString ? `${api}/api/events?${queryString}` : `${api}/api/events`;
+			const url = `${api}/api/events?${queryString}`;
 
 			const response = await fetch(url, {
 				credentials: 'include'
 			});
 			if (response.ok) {
-				events = await response.json();
+				const data = await response.json();
+				events = data;
+				hasMorePages = data.length === PAGE_SIZE;
 			} else {
 				error = 'Failed to load events';
 			}
@@ -165,7 +186,15 @@
 		}
 	}
 
+	async function goToPage(pageNum: number) {
+		currentPage = pageNum;
+		updateUrl();
+		await fetchEvents();
+		window.scrollTo({ top: 0, behavior: 'smooth' });
+	}
+
 	async function applyFilters() {
+		currentPage = 1;
 		updateUrl();
 		await fetchEvents();
 	}
@@ -410,6 +439,31 @@
 					</Card.Footer>
 				</Card.Root>
 			{/each}
+		</div>
+
+		<!-- Pagination Controls -->
+		<div class="flex items-center justify-center gap-4 mt-8">
+			<Button
+				variant="outline"
+				disabled={currentPage === 1}
+				onclick={() => goToPage(currentPage - 1)}
+				class="gap-2"
+			>
+				<IconChevronLeft class="w-4 h-4" />
+				Previous
+			</Button>
+			<span class="text-sm text-muted-foreground">
+				Page {currentPage}
+			</span>
+			<Button
+				variant="outline"
+				disabled={!hasMorePages}
+				onclick={() => goToPage(currentPage + 1)}
+				class="gap-2"
+			>
+				Next
+				<IconChevronRight class="w-4 h-4" />
+			</Button>
 		</div>
 	{/if}
 </div>

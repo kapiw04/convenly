@@ -125,6 +125,23 @@ func (rt *Router) CreateEventHandler(w http.ResponseWriter, r *http.Request) {
 func (rt *Router) ListEventsHandler(w http.ResponseWriter, r *http.Request) {
 	filter := &event.EventFilter{}
 
+	if page := r.URL.Query().Get("page"); page != "" {
+		p, err := strconv.Atoi(page)
+		if err != nil || p < 1 {
+			ErrorResponse(w, http.StatusBadRequest, "invalid page format")
+			return
+		}
+		pageSize := 12
+		if ps := r.URL.Query().Get("page_size"); ps != "" {
+			pageSize, err = strconv.Atoi(ps)
+			if err != nil || pageSize < 1 || pageSize > 100 {
+				ErrorResponse(w, http.StatusBadRequest, "invalid page_size format (1-100)")
+				return
+			}
+		}
+		filter.Pagination = &event.Pagination{Page: p, PageSize: pageSize}
+	}
+
 	if dateFrom := r.URL.Query().Get("date_from"); dateFrom != "" {
 		t, err := time.Parse(time.RFC3339, dateFrom)
 		if err != nil {
@@ -175,7 +192,8 @@ func (rt *Router) ListEventsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	hasFilters := filter.DateFrom != nil || filter.DateTo != nil ||
-		filter.MinFee != nil || filter.MaxFee != nil || len(filter.Tags) > 0
+		filter.MinFee != nil || filter.MaxFee != nil || len(filter.Tags) > 0 ||
+		filter.Pagination != nil
 
 	var events []*event.Event
 	var err error
@@ -271,13 +289,13 @@ func (rt *Router) MyEventsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hosting, err := rt.EventService.GetHostingEvents(userId)
+	hosting, err := rt.EventService.GetHostingEvents(userId, nil)
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, "failed to get hosting events: "+err.Error())
 		return
 	}
 
-	attending, err := rt.EventService.GetAttendingEvents(userId)
+	attending, err := rt.EventService.GetAttendingEvents(userId, nil)
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, "failed to get attending events: "+err.Error())
 		return

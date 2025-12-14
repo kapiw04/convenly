@@ -236,10 +236,10 @@ func TestEventService_GetHostingEvents_Success(t *testing.T) {
 		{EventID: "event-2", Name: "Hosted Event 2", OrganizerID: "user-1"},
 	}
 
-	eventRepo.EXPECT().FindByOrganizer("user-1").Return(expected, nil)
+	eventRepo.EXPECT().FindByOrganizer("user-1", (*event.Pagination)(nil)).Return(expected, nil)
 
 	svc := NewEventService(eventRepo)
-	result, err := svc.GetHostingEvents("user-1")
+	result, err := svc.GetHostingEvents("user-1", nil)
 
 	require.NoError(t, err)
 	require.Len(t, result, 2)
@@ -252,10 +252,10 @@ func TestEventService_GetHostingEvents_Error(t *testing.T) {
 
 	eventRepo := mock_event.NewMockEventRepo(ctrl)
 
-	eventRepo.EXPECT().FindByOrganizer("user-1").Return(nil, errors.New("database error"))
+	eventRepo.EXPECT().FindByOrganizer("user-1", (*event.Pagination)(nil)).Return(nil, errors.New("database error"))
 
 	svc := NewEventService(eventRepo)
-	_, err := svc.GetHostingEvents("user-1")
+	_, err := svc.GetHostingEvents("user-1", nil)
 
 	require.Error(t, err)
 }
@@ -266,10 +266,10 @@ func TestEventService_GetHostingEvents_Empty(t *testing.T) {
 
 	eventRepo := mock_event.NewMockEventRepo(ctrl)
 
-	eventRepo.EXPECT().FindByOrganizer("user-1").Return([]*event.Event{}, nil)
+	eventRepo.EXPECT().FindByOrganizer("user-1", (*event.Pagination)(nil)).Return([]*event.Event{}, nil)
 
 	svc := NewEventService(eventRepo)
-	result, err := svc.GetHostingEvents("user-1")
+	result, err := svc.GetHostingEvents("user-1", nil)
 
 	require.NoError(t, err)
 	require.Len(t, result, 0)
@@ -286,10 +286,10 @@ func TestEventService_GetAttendingEvents_Success(t *testing.T) {
 		{EventID: "event-2", Name: "Attending Event 2"},
 	}
 
-	eventRepo.EXPECT().FindAttendingEvents("user-1").Return(expected, nil)
+	eventRepo.EXPECT().FindAttendingEvents("user-1", (*event.Pagination)(nil)).Return(expected, nil)
 
 	svc := NewEventService(eventRepo)
-	result, err := svc.GetAttendingEvents("user-1")
+	result, err := svc.GetAttendingEvents("user-1", nil)
 
 	require.NoError(t, err)
 	require.Len(t, result, 2)
@@ -302,10 +302,10 @@ func TestEventService_GetAttendingEvents_Error(t *testing.T) {
 
 	eventRepo := mock_event.NewMockEventRepo(ctrl)
 
-	eventRepo.EXPECT().FindAttendingEvents("user-1").Return(nil, errors.New("database error"))
+	eventRepo.EXPECT().FindAttendingEvents("user-1", (*event.Pagination)(nil)).Return(nil, errors.New("database error"))
 
 	svc := NewEventService(eventRepo)
-	_, err := svc.GetAttendingEvents("user-1")
+	_, err := svc.GetAttendingEvents("user-1", nil)
 
 	require.Error(t, err)
 }
@@ -316,10 +316,10 @@ func TestEventService_GetAttendingEvents_Empty(t *testing.T) {
 
 	eventRepo := mock_event.NewMockEventRepo(ctrl)
 
-	eventRepo.EXPECT().FindAttendingEvents("user-1").Return([]*event.Event{}, nil)
+	eventRepo.EXPECT().FindAttendingEvents("user-1", (*event.Pagination)(nil)).Return([]*event.Event{}, nil)
 
 	svc := NewEventService(eventRepo)
-	result, err := svc.GetAttendingEvents("user-1")
+	result, err := svc.GetAttendingEvents("user-1", nil)
 
 	require.NoError(t, err)
 	require.Len(t, result, 0)

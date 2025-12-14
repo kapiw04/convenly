@@ -3,7 +3,9 @@ package integral
 import (
 	"context"
 	"database/sql"
+	"io"
 	"log"
+	"log/slog"
 	"os"
 
 	_ "github.com/lib/pq"
@@ -12,6 +14,8 @@ import (
 )
 
 func TestMain(m *testing.M) {
+	slog.SetDefault(slog.New(slog.NewTextHandler(io.Discard, nil)))
+
 	ctx := context.Background()
 
 	var err error

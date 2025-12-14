@@ -98,3 +98,8 @@ tasks:
     desc: Generate test data (10000 events by default)
     cmds:
       - go run ./scripts/benchmark/main.go -events=10000
+
+  "db:bench":
+    desc: Run database benchmarks with memory stats
+    cmds:
+      - go test -run=^$ -bench=. -count 10 -benchmem ./test/integral/

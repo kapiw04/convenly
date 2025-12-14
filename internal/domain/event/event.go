@@ -16,12 +16,32 @@ type Event struct {
 	Tags        []string  `json:"tag,omitempty"`
 }
 
+type Pagination struct {
+	Page     int
+	PageSize int
+}
+
+func (p *Pagination) Offset() int {
+	if p == nil || p.Page <= 0 {
+		return 0
+	}
+	return (p.Page - 1) * p.PageSize
+}
+
+func (p *Pagination) Limit() int {
+	if p == nil || p.PageSize <= 0 {
+		return 0
+	}
+	return p.PageSize
+}
+
 type EventFilter struct {
-	DateFrom *time.Time
-	DateTo   *time.Time
-	MinFee   *float32
-	MaxFee   *float32
-	Tags     []string
+	DateFrom   *time.Time
+	DateTo     *time.Time
+	MinFee     *float32
+	MaxFee     *float32
+	Tags       []string
+	Pagination *Pagination
 }
 
 type EventRepo interface {
@@ -33,7 +53,7 @@ type EventRepo interface {
 	RegisterAttendance(userID, eventID string) error
 	GetAttendees(eventID string) ([]string, error)
 	RemoveAttendance(userID, eventID string) error
-	FindByOrganizer(userID string) ([]*Event, error)
-	FindAttendingEvents(userID string) ([]*Event, error)
+	FindByOrganizer(userID string, pagination *Pagination) ([]*Event, error)
+	FindAttendingEvents(userID string, pagination *Pagination) ([]*Event, error)
 	Delete(eventID string) error
 }

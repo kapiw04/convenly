@@ -100,18 +100,18 @@ func (mr *MockEventRepoMockRecorder) FindAllWithFilters(filter any) *gomock.Call
 }
 
 // FindAttendingEvents mocks base method.
-func (m *MockEventRepo) FindAttendingEvents(userID string) ([]*event.Event, error) {
+func (m *MockEventRepo) FindAttendingEvents(userID string, pagination *event.Pagination) ([]*event.Event, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindAttendingEvents", userID)
+	ret := m.ctrl.Call(m, "FindAttendingEvents", userID, pagination)
 	ret0, _ := ret[0].([]*event.Event)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // FindAttendingEvents indicates an expected call of FindAttendingEvents.
-func (mr *MockEventRepoMockRecorder) FindAttendingEvents(userID any) *gomock.Call {
+func (mr *MockEventRepoMockRecorder) FindAttendingEvents(userID, pagination any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindAttendingEvents", reflect.TypeOf((*MockEventRepo)(nil).FindAttendingEvents), userID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindAttendingEvents", reflect.TypeOf((*MockEventRepo)(nil).FindAttendingEvents), userID, pagination)
 }
 
 // FindByID mocks base method.
@@ -130,18 +130,18 @@ func (mr *MockEventRepoMockRecorder) FindByID(arg0 any) *gomock.Call {
 }
 
 // FindByOrganizer mocks base method.
-func (m *MockEventRepo) FindByOrganizer(userID string) ([]*event.Event, error) {
+func (m *MockEventRepo) FindByOrganizer(userID string, pagination *event.Pagination) ([]*event.Event, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindByOrganizer", userID)
+	ret := m.ctrl.Call(m, "FindByOrganizer", userID, pagination)
 	ret0, _ := ret[0].([]*event.Event)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // FindByOrganizer indicates an expected call of FindByOrganizer.
-func (mr *MockEventRepoMockRecorder) FindByOrganizer(userID any) *gomock.Call {
+func (mr *MockEventRepoMockRecorder) FindByOrganizer(userID, pagination any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindByOrganizer", reflect.TypeOf((*MockEventRepo)(nil).FindByOrganizer), userID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindByOrganizer", reflect.TypeOf((*MockEventRepo)(nil).FindByOrganizer), userID, pagination)
 }
 
 // GetAttendees mocks base method.

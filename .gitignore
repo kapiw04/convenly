@@ -4,3 +4,5 @@ logs
 .vscode
 
 frontend/node_modules
+
+*.bench

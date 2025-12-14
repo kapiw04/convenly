@@ -42,12 +42,12 @@ func (s *EventService) RemoveAttendance(userID, eventID string) error {
 	return s.eventRepo.RemoveAttendance(userID, eventID)
 }
 
-func (s *EventService) GetHostingEvents(userID string) ([]*event.Event, error) {
-	return s.eventRepo.FindByOrganizer(userID)
+func (s *EventService) GetHostingEvents(userID string, pagination *event.Pagination) ([]*event.Event, error) {
+	return s.eventRepo.FindByOrganizer(userID, pagination)
 }
 
-func (s *EventService) GetAttendingEvents(userID string) ([]*event.Event, error) {
-	return s.eventRepo.FindAttendingEvents(userID)
+func (s *EventService) GetAttendingEvents(userID string, pagination *event.Pagination) ([]*event.Event, error) {
+	return s.eventRepo.FindAttendingEvents(userID, pagination)
 }
 
 func (s *EventService) DeleteEvent(eventID string) error {
