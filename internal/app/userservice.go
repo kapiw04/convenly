@@ -60,9 +60,9 @@ func (s *UserService) GetByEmail(rawEmail string) (*user.User, error) {
 	return s.userRepo.FindByEmail(email.String())
 }
 
-func (s *UserService) GetByUUID(userId string) (*user.User, error) {
-	slog.Info("Getting user with UUID: %s", "uuid", userId)
-	return s.userRepo.FindByUUID(userId)
+func (s *UserService) GetByUUID(userID string) (*user.User, error) {
+	slog.Info("Getting user with UUID: %s", "uuid", userID)
+	return s.userRepo.FindByUUID(userID)
 }
 
 func (s *UserService) Login(rawEmail string, rawPassword string) (string, error) {
@@ -85,20 +85,20 @@ func (s *UserService) Login(rawEmail string, rawPassword string) (string, error)
 	return s.sessionRepo.Create(string(email))
 }
 
-func (s *UserService) Logout(sessionId string) error {
-	return s.sessionRepo.Delete(sessionId)
+func (s *UserService) Logout(sessionID string) error {
+	return s.sessionRepo.Delete(sessionID)
 }
 
-func (s *UserService) GetBySessionId(sessionId string) (*user.User, error) {
-	u, err := s.sessionRepo.Get(sessionId)
+func (s *UserService) GetBySessionID(sessionID string) (*user.User, error) {
+	u, err := s.sessionRepo.Get(sessionID)
 	if err != nil {
 		return nil, err
 	}
 	return &u, nil
 }
 
-func (s *UserService) PromoteToHost(userId string) error {
-	u, err := s.userRepo.FindByUUID(userId)
+func (s *UserService) PromoteToHost(userID string) error {
+	u, err := s.userRepo.FindByUUID(userID)
 	if err != nil {
 		return err
 	}

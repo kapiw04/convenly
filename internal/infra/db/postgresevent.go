@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -20,12 +22,12 @@ func NewPostgresEventRepo(db *sql.DB, tr event.TagRepo) *PostgresEventRepo {
 	return &PostgresEventRepo{DB: db, TagRepo: tr}
 }
 
-func (p *PostgresEventRepo) FindByID(eventId string) (*event.Event, error) {
-	e, err := findEvent(p, eventId)
+func (p *PostgresEventRepo) FindByID(eventID string) (*event.Event, error) {
+	e, err := findEvent(p, eventID)
 	if err != nil {
 		return nil, err
 	}
-	tags, err := findTagNames(p, eventId)
+	tags, err := findTagNames(p, eventID)
 	if err != nil {
 		return nil, err
 	}
@@ -33,12 +35,12 @@ func (p *PostgresEventRepo) FindByID(eventId string) (*event.Event, error) {
 	return e, nil
 }
 
-func findTagNames(p *PostgresEventRepo, eventId string) ([]string, error) {
+func findTagNames(p *PostgresEventRepo, eventID string) ([]string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	query := "SELECT t.name FROM event_tag et INNER JOIN tags t ON et.tag_id = t.tag_id WHERE et.event_id = $1"
 
-	eid, err := uuid.Parse(eventId)
+	eid, err := uuid.Parse(eventID)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +49,11 @@ func findTagNames(p *PostgresEventRepo, eventId string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if errClosingRows := rows.Close(); errClosingRows != nil {
+			slog.Warn("Rows was not closed")
+		}
+	}()
 
 	var tagNames []string
 
@@ -62,11 +68,11 @@ func findTagNames(p *PostgresEventRepo, eventId string) ([]string, error) {
 	return tagNames, nil
 }
 
-func findEvent(p *PostgresEventRepo, eventId string) (*event.Event, error) {
+func findEvent(p *PostgresEventRepo, eventID string) (*event.Event, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	query := "SELECT event_id, name, description, date, latitude, longitude, fee, organizer_id FROM events WHERE event_id = $1"
-	rows, err := p.DB.QueryContext(ctx, query, eventId)
+	rows, err := p.DB.QueryContext(ctx, query, eventID)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +95,7 @@ func (p *PostgresEventRepo) Save(e *event.Event) error {
 }
 
 func saveEventTag(e *event.Event, p *PostgresEventRepo) error {
-	eventId, err := uuid.Parse(e.EventID)
+	eventID, err := uuid.Parse(e.EventID)
 	if err != nil {
 		return err
 	}
@@ -103,7 +109,7 @@ func saveEventTag(e *event.Event, p *PostgresEventRepo) error {
 		}
 
 		query := "INSERT INTO event_tag (event_id, tag_id) VALUES ($1, $2)"
-		_, err = p.DB.Exec(query, eventId, t.TagID)
+		_, err = p.DB.Exec(query, eventID, t.TagID)
 		if err != nil {
 			return err
 		}
@@ -116,57 +122,55 @@ func saveEvent(e *event.Event, p *PostgresEventRepo) error {
 		"(event_id, name, description, date, latitude, longitude, fee, organizer_id)" +
 		"VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"
 
-	eventId, err := uuid.Parse(e.EventID)
+	eventID, err := uuid.Parse(e.EventID)
 	if err != nil {
 		return err
 	}
 
-	organizerId, err := uuid.Parse(e.OrganizerID)
+	organizerID, err := uuid.Parse(e.OrganizerID)
 	if err != nil {
 		return err
 	}
 	_, err = p.DB.Exec(
 		query,
-		eventId,
+		eventID,
 		e.Name,
 		e.Description,
 		e.Date,
 		e.Latitude,
 		e.Longitude,
 		e.Fee,
-		organizerId,
+		organizerID,
 	)
 	return err
 }
 
 func (p *PostgresEventRepo) FindAll() ([]*event.Event, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Second)
 	defer cancel()
-	query := "SELECT event_id, name, description, date, latitude, longitude, fee, organizer_id FROM events"
+	query := "SELECT event_id, name, description, date, latitude, longitude, fee, organizer_id, tags FROM find_event_with_tags"
 	rows, err := p.DB.QueryContext(ctx, query)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if errClosingRows := rows.Close(); errClosingRows != nil {
+			slog.Warn("Rows was not closed")
+		}
+	}()
 
 	var events []*event.Event
 	for rows.Next() {
 		var e event.Event
-		if err := rows.Scan(&e.EventID, &e.Name, &e.Description, &e.Date, &e.Latitude, &e.Longitude, &e.Fee, &e.OrganizerID); err != nil {
+		var tags pq.StringArray
+		if err := rows.Scan(&e.EventID, &e.Name, &e.Description, &e.Date, &e.Latitude, &e.Longitude, &e.Fee, &e.OrganizerID, &tags); err != nil {
 			return nil, err
 		}
+		e.Tags = []string(tags)
 		events = append(events, &e)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
-	}
-
-	for _, e := range events {
-		tags, err := findTagNames(p, e.EventID)
-		if err != nil {
-			return nil, err
-		}
-		e.Tags = tags
 	}
 
 	return events, nil
@@ -189,6 +193,16 @@ func (p *PostgresEventRepo) RegisterAttendance(userID, eventID string) error {
 	return err
 }
 
+func (p *PostgresEventRepo) IsUserAttending(userID string, eventID string) bool {
+	query := "SELECT EXISTS (SELECT 1 FROM attendance WHERE attendance.user_id = $1 AND attendance.event_id = $2)"
+	var exists bool
+	err := p.DB.QueryRow(query, userID, eventID).Scan(&exists)
+	if err != nil {
+		return false
+	}
+	return exists
+}
+
 func (p *PostgresEventRepo) GetAttendees(eventID string) ([]string, error) {
 	query := "SELECT user_id FROM attendance WHERE event_id = $1"
 
@@ -202,7 +216,11 @@ func (p *PostgresEventRepo) GetAttendees(eventID string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if errClosingRows := rows.Close(); errClosingRows != nil {
+			slog.Warn("Rows was not closed")
+		}
+	}()
 
 	for rows.Next() {
 		var uid uuid.UUID
@@ -212,6 +230,16 @@ func (p *PostgresEventRepo) GetAttendees(eventID string) ([]string, error) {
 		attendees = append(attendees, uid.String())
 	}
 	return attendees, nil
+}
+
+func (p *PostgresEventRepo) GetAttendeesCount(eventID string) (int, error) {
+	query := "SELECT count FROM attendees_count c WHERE c.event_id = $1"
+
+	var count int
+	if err := p.DB.QueryRow(query, eventID).Scan(&count); err != nil {
+		return 0, err
+	}
+	return count, nil
 }
 
 func (p *PostgresEventRepo) RemoveAttendance(userID, eventID string) error {
@@ -237,12 +265,11 @@ func (p *PostgresEventRepo) FindAllByTags(tagNames []string) ([]*event.Event, er
 	}
 
 	query := `
-		SELECT DISTINCT e.event_id, e.name, e.description, e.date, e.latitude, e.longitude, e.fee, e.organizer_id
-		FROM events e 
-		INNER JOIN event_tag et ON et.event_id = e.event_id
-		INNER JOIN tags t ON t.tag_id = et.tag_id
-		WHERE t.name = ANY($1)
-	`
+SELECT event_id, name, description, date, latitude, longitude, fee, organizer_id, tags
+FROM find_event_with_tags
+WHERE tags && $1::text[];
+`
+
 	rows, err := p.DB.Query(query, pq.Array(tagNames))
 	if err != nil {
 		return nil, err
@@ -252,15 +279,18 @@ func (p *PostgresEventRepo) FindAllByTags(tagNames []string) ([]*event.Event, er
 	var events []*event.Event
 	for rows.Next() {
 		var e event.Event
-		if err := rows.Scan(&e.EventID, &e.Name, &e.Description, &e.Date, &e.Latitude, &e.Longitude, &e.Fee, &e.OrganizerID); err != nil {
+		var tags pq.StringArray
+		if err := rows.Scan(
+			&e.EventID, &e.Name, &e.Description, &e.Date,
+			&e.Latitude, &e.Longitude, &e.Fee, &e.OrganizerID,
+			&tags,
+		); err != nil {
 			return nil, err
 		}
+		e.Tags = []string(tags)
 		events = append(events, &e)
 	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return events, nil
+	return events, rows.Err()
 }
 
 func (p *PostgresEventRepo) FindAllWithFilters(filter *event.EventFilter) ([]*event.Event, error) {
@@ -268,60 +298,56 @@ func (p *PostgresEventRepo) FindAllWithFilters(filter *event.EventFilter) ([]*ev
 	defer cancel()
 
 	query := `
-		SELECT DISTINCT e.event_id, e.name, e.description, e.date, e.latitude, e.longitude, e.fee, e.organizer_id
-		FROM events e
-	`
-	var args []interface{}
-	argIndex := 1
-	var conditions []string
+SELECT event_id, name, description, date, latitude, longitude, fee, organizer_id, tags
+FROM find_event_with_tags
+`
+	var (
+		args       []any
+		conditions []string
+		argIndex   = 1
+	)
 
-	if len(filter.Tags) > 0 {
-		query += `
-			INNER JOIN event_tag et ON et.event_id = e.event_id
-			INNER JOIN tags t ON t.tag_id = et.tag_id
-		`
-		conditions = append(conditions, fmt.Sprintf("t.name = ANY($%d)", argIndex))
-		args = append(args, pq.Array(filter.Tags))
-		argIndex++
-	}
-
-	if filter.DateFrom != nil {
-		conditions = append(conditions, fmt.Sprintf("e.date >= $%d", argIndex))
-		args = append(args, *filter.DateFrom)
-		argIndex++
-	}
-	if filter.DateTo != nil {
-		conditions = append(conditions, fmt.Sprintf("e.date <= $%d", argIndex))
-		args = append(args, *filter.DateTo)
-		argIndex++
-	}
-
-	if filter.MinFee != nil {
-		conditions = append(conditions, fmt.Sprintf("e.fee >= $%d", argIndex))
-		args = append(args, *filter.MinFee)
-		argIndex++
-	}
-	if filter.MaxFee != nil {
-		conditions = append(conditions, fmt.Sprintf("e.fee <= $%d", argIndex))
-		args = append(args, *filter.MaxFee)
-		argIndex++
-	}
-
-	if len(conditions) > 0 {
-		query += " WHERE "
-		for i, cond := range conditions {
-			if i > 0 {
-				query += " AND "
-			}
-			query += cond
+	if filter != nil {
+		if len(filter.Tags) > 0 {
+			conditions = append(conditions, fmt.Sprintf("tags && $%d::text[]", argIndex))
+			args = append(args, pq.Array(filter.Tags))
+			argIndex++
 		}
-	}
 
-	query += " ORDER BY e.date ASC"
+		if filter.DateFrom != nil {
+			conditions = append(conditions, fmt.Sprintf(`date >= $%d`, argIndex))
+			args = append(args, *filter.DateFrom)
+			argIndex++
+		}
+		if filter.DateTo != nil {
+			conditions = append(conditions, fmt.Sprintf(`date <= $%d`, argIndex))
+			args = append(args, *filter.DateTo)
+			argIndex++
+		}
 
-	if filter.Pagination != nil && filter.Pagination.Limit() > 0 {
-		query += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIndex, argIndex+1)
-		args = append(args, filter.Pagination.Limit(), filter.Pagination.Offset())
+		if filter.MinFee != nil {
+			conditions = append(conditions, fmt.Sprintf(`fee >= $%d`, argIndex))
+			args = append(args, *filter.MinFee)
+			argIndex++
+		}
+		if filter.MaxFee != nil {
+			conditions = append(conditions, fmt.Sprintf(`fee <= $%d`, argIndex))
+			args = append(args, *filter.MaxFee)
+			argIndex++
+		}
+
+		if len(conditions) > 0 {
+			query += " WHERE " + strings.Join(conditions, " AND ")
+		}
+
+		query += " ORDER BY date ASC"
+
+		if filter.Pagination != nil && filter.Pagination.Limit() > 0 {
+			query += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIndex, argIndex+1)
+			args = append(args, filter.Pagination.Limit(), filter.Pagination.Offset())
+		}
+	} else {
+		query += " ORDER BY date ASC"
 	}
 
 	rows, err := p.DB.QueryContext(ctx, query, args...)
@@ -333,24 +359,21 @@ func (p *PostgresEventRepo) FindAllWithFilters(filter *event.EventFilter) ([]*ev
 	var events []*event.Event
 	for rows.Next() {
 		var e event.Event
-		if err := rows.Scan(&e.EventID, &e.Name, &e.Description, &e.Date, &e.Latitude, &e.Longitude, &e.Fee, &e.OrganizerID); err != nil {
+		var tags pq.StringArray
+
+		if err := rows.Scan(
+			&e.EventID, &e.Name, &e.Description, &e.Date,
+			&e.Latitude, &e.Longitude, &e.Fee, &e.OrganizerID,
+			&tags,
+		); err != nil {
 			return nil, err
 		}
+
+		e.Tags = []string(tags)
 		events = append(events, &e)
 	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
 
-	for _, e := range events {
-		tags, err := findTagNames(p, e.EventID)
-		if err != nil {
-			return nil, err
-		}
-		e.Tags = tags
-	}
-
-	return events, nil
+	return events, rows.Err()
 }
 
 func (p *PostgresEventRepo) FindByOrganizer(userID string, pagination *event.Pagination) ([]*event.Event, error) {
@@ -375,7 +398,11 @@ func (p *PostgresEventRepo) FindByOrganizer(userID string, pagination *event.Pag
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if errClosingRows := rows.Close(); errClosingRows != nil {
+			slog.Warn("Rows was not closed")
+		}
+	}()
 
 	var events []*event.Event
 	for rows.Next() {
@@ -424,7 +451,11 @@ func (p *PostgresEventRepo) FindAttendingEvents(userID string, pagination *event
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if errClosingRows := rows.Close(); errClosingRows != nil {
+			slog.Warn("Rows was not closed")
+		}
+	}()
 
 	var events []*event.Event
 	for rows.Next() {

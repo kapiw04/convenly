@@ -236,7 +236,7 @@ func TestUserService_PromoteToHost_UserNotFound(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestUserService_GetBySessionId_Success(t *testing.T) {
+func TestUserService_GetBySessionID_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -252,13 +252,13 @@ func TestUserService_GetBySessionId_Success(t *testing.T) {
 	sessionRepo.EXPECT().Get("session-id").Return(testUser, nil)
 
 	svc := NewUserService(userRepo, sessionRepo, hasher)
-	u, err := svc.GetBySessionId("session-id")
+	u, err := svc.GetBySessionID("session-id")
 
 	require.NoError(t, err)
 	require.Equal(t, "TestUser", u.Name)
 }
 
-func TestUserService_GetBySessionId_NotFound(t *testing.T) {
+func TestUserService_GetBySessionID_NotFound(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -269,7 +269,7 @@ func TestUserService_GetBySessionId_NotFound(t *testing.T) {
 	sessionRepo.EXPECT().Get("invalid-session").Return(user.User{}, errors.New("session not found"))
 
 	svc := NewUserService(userRepo, sessionRepo, hasher)
-	_, err := svc.GetBySessionId("invalid-session")
+	_, err := svc.GetBySessionID("invalid-session")
 
 	require.Error(t, err)
 }

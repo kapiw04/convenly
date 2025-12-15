@@ -86,8 +86,7 @@ tasks:
   "debug-tc-db":
     desc: Debug testcontainer postgresql
     cmds:
-      - echo $(./scripts/find_tc_container.sh)
-      - docker exec -it $(docker ps | awk '$2=="postgres" {print $1}') psql -U user -d db
+      - docker exec -it $(docker ps | awk '$2=="postgres:16-alpine" {print $1}') psql -U user -d db
 
   "db:clean":
     desc: Clean the database (truncate all tables and repopulate roles)

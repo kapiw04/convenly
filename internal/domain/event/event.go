@@ -51,7 +51,9 @@ type EventRepo interface {
 	FindAllWithFilters(filter *EventFilter) ([]*Event, error)
 	FindAllByTags(tagNames []string) ([]*Event, error)
 	RegisterAttendance(userID, eventID string) error
+	IsUserAttending(userID string, eventID string) bool
 	GetAttendees(eventID string) ([]string, error)
+	GetAttendeesCount(eventID string) (int, error)
 	RemoveAttendance(userID, eventID string) error
 	FindByOrganizer(userID string, pagination *Pagination) ([]*Event, error)
 	FindAttendingEvents(userID string, pagination *Pagination) ([]*Event, error)

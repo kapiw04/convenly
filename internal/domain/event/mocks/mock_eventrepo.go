@@ -159,6 +159,35 @@ func (mr *MockEventRepoMockRecorder) GetAttendees(eventID any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAttendees", reflect.TypeOf((*MockEventRepo)(nil).GetAttendees), eventID)
 }
 
+// GetAttendeesCount mocks base method.
+func (m *MockEventRepo) GetAttendeesCount(eventID string) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAttendeesCount", eventID)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAttendeesCount indicates an expected call of GetAttendeesCount.
+func (mr *MockEventRepoMockRecorder) GetAttendeesCount(eventID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAttendeesCount", reflect.TypeOf((*MockEventRepo)(nil).GetAttendeesCount), eventID)
+}
+
+// IsUserAttending mocks base method.
+func (m *MockEventRepo) IsUserAttending(userID, eventID string) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsUserAttending", userID, eventID)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsUserAttending indicates an expected call of IsUserAttending.
+func (mr *MockEventRepoMockRecorder) IsUserAttending(userID, eventID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsUserAttending", reflect.TypeOf((*MockEventRepo)(nil).IsUserAttending), userID, eventID)
+}
+
 // RegisterAttendance mocks base method.
 func (m *MockEventRepo) RegisterAttendance(userID, eventID string) error {
 	m.ctrl.T.Helper()

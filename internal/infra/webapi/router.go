@@ -12,9 +12,9 @@ import (
 type ctxKey string
 
 const (
-	ctxUserId    ctxKey = "userId"
+	ctxUserID    ctxKey = "userID"
 	ctxUserRole  ctxKey = "userRole"
-	ctxSessionId ctxKey = "sessionId"
+	ctxSessionID ctxKey = "sessionID"
 )
 
 type Router struct {

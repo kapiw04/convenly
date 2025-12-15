@@ -6,6 +6,10 @@ type EventService struct {
 	eventRepo event.EventRepo
 }
 
+func (s *EventService) GetAttendeesCount(eid string) (int, error) {
+	return s.eventRepo.GetAttendeesCount(eid)
+}
+
 func NewEventService(repo event.EventRepo) *EventService {
 	return &EventService{eventRepo: repo}
 }
@@ -32,6 +36,10 @@ func (s *EventService) GetEventsWithFilters(filter *event.EventFilter) ([]*event
 
 func (s *EventService) RegisterAttendance(userID, eventID string) error {
 	return s.eventRepo.RegisterAttendance(userID, eventID)
+}
+
+func (s *EventService) IsUserAttending(userID, eventID string) bool {
+	return s.eventRepo.IsUserAttending(userID, eventID)
 }
 
 func (s *EventService) GetAttendees(eventID string) ([]string, error) {

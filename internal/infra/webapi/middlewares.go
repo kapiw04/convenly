@@ -28,25 +28,25 @@ func AclMiddleware(requiredRoles ...user.Role) func(next http.Handler) http.Hand
 func AuthMiddleware(srvc *app.UserService) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			var sessionId string
+			var sessionID string
 			if c, err := r.Cookie("session-id"); err == nil {
-				sessionId = c.Value
+				sessionID = c.Value
 			} else {
 				slog.Warn("No session cookie found", "err", err)
 				ErrorResponse(w, http.StatusUnauthorized, "unauthorized")
 				return
 			}
-			user, err := srvc.GetBySessionId(sessionId)
+			user, err := srvc.GetBySessionID(sessionID)
 			if err != nil {
 				slog.Warn("Invalid session ID", "err", err)
 				ErrorResponse(w, http.StatusUnauthorized, "unauthorized")
 				return
 			}
-			ctx := context.WithValue(r.Context(), ctxUserId, user.UUID.String())
-			ctx = context.WithValue(ctx, ctxSessionId, sessionId)
+			ctx := context.WithValue(r.Context(), ctxUserID, user.UUID.String())
+			ctx = context.WithValue(ctx, ctxSessionID, sessionID)
 			ctx = context.WithValue(ctx, ctxUserRole, user.Role)
 
-			slog.Info("Authenticated user", "userId", user.UUID.String(), "role", user.Role)
+			slog.Info("Authenticated user", "userID", user.UUID.String(), "role", user.Role)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

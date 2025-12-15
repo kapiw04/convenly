@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -49,7 +48,7 @@ func (rt *Router) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		ErrorResponse(w, http.StatusBadRequest, "empty fields")
 		return
 	}
-	sessionId, err := rt.UserService.Login(loginRequest.Email, loginRequest.Password)
+	sessionID, err := rt.UserService.Login(loginRequest.Email, loginRequest.Password)
 	if err != nil {
 		slog.Error("Login failed: %v", "err", err)
 		ErrorResponse(w, http.StatusBadRequest, "bad request: "+err.Error())
@@ -59,7 +58,7 @@ func (rt *Router) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     "session-id",
 		Quoted:   false,
-		Value:    sessionId,
+		Value:    sessionID,
 		HttpOnly: true,
 		Secure:   true,
 	})
@@ -73,12 +72,12 @@ func (rt *Router) LoginHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rt *Router) LogoutHandler(w http.ResponseWriter, r *http.Request) {
-	sessionId := r.Context().Value(ctxSessionId).(string)
-	if sessionId == "" {
+	sessionID := r.Context().Value(ctxSessionID).(string)
+	if sessionID == "" {
 		ErrorResponse(w, http.StatusBadRequest, "missing session ID")
 		return
 	}
-	err := rt.UserService.Logout(sessionId)
+	err := rt.UserService.Logout(sessionID)
 	if err != nil {
 		ErrorResponse(w, http.StatusBadRequest, "bad request: "+err.Error())
 		return
@@ -100,7 +99,7 @@ func (rt *Router) CreateEventHandler(w http.ResponseWriter, r *http.Request) {
 		ErrorResponse(w, http.StatusBadRequest, "bad request: "+err.Error())
 		return
 	}
-	uid := getUserId(r)
+	uid := getUserID(r)
 
 	e := &event.Event{
 		EventID:     uuid.New().String(),
@@ -212,7 +211,7 @@ func (rt *Router) ListEventsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rt *Router) GetUserInfoHandler(w http.ResponseWriter, r *http.Request) {
-	user, err := rt.UserService.GetByUUID(getUserId(r))
+	user, err := rt.UserService.GetByUUID(getUserID(r))
 	if err != nil {
 		ErrorResponse(w, http.StatusBadRequest, "bad request: "+err.Error())
 		return
@@ -223,8 +222,8 @@ func (rt *Router) GetUserInfoHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rt *Router) BecomeHostHandler(w http.ResponseWriter, r *http.Request) {
-	userId := getUserId(r)
-	err := rt.UserService.PromoteToHost(userId)
+	userID := getUserID(r)
+	err := rt.UserService.PromoteToHost(userID)
 	if err != nil {
 		ErrorResponse(w, http.StatusBadRequest, "bad request: "+err.Error())
 		return
@@ -234,18 +233,18 @@ func (rt *Router) BecomeHostHandler(w http.ResponseWriter, r *http.Request) {
 
 func (rt *Router) EventDetailHandler(w http.ResponseWriter, r *http.Request) {
 	eid := chi.URLParam(r, "id")
-	uid := getUserId(r)
+	uid := getUserID(r)
 	e, err := rt.EventService.GetEventByID(eid)
 	if err != nil {
 		ErrorResponse(w, http.StatusBadRequest, "bad request: "+err.Error())
 		return
 	}
-	attendees, err := rt.EventService.GetAttendees(eid)
-
+	attendeesCount, err := rt.EventService.GetAttendeesCount(eid)
 	if err != nil {
-		ErrorResponse(w, http.StatusBadRequest, "bad request: "+err.Error())
+		ErrorResponse(w, http.StatusInternalServerError, "internal server error: "+err.Error())
 		return
 	}
+	isUserAttending := rt.EventService.IsUserAttending(uid, eid)
 
 	JSONResponse(w, http.StatusOK, struct {
 		*event.Event
@@ -253,16 +252,16 @@ func (rt *Router) EventDetailHandler(w http.ResponseWriter, r *http.Request) {
 		UserRegistered bool `json:"user_registered"`
 	}{
 		Event:          e,
-		AttendeesCount: len(attendees),
-		UserRegistered: uid != "" && slices.Contains(attendees, uid),
+		AttendeesCount: attendeesCount,
+		UserRegistered: uid != "" && isUserAttending,
 	})
 }
 
 func (rt *Router) UnregisterFromEventHandler(w http.ResponseWriter, r *http.Request) {
-	eventId := chi.URLParam(r, "id")
-	userId := getUserId(r)
+	eventID := chi.URLParam(r, "id")
+	userID := getUserID(r)
 
-	err := rt.EventService.RemoveAttendance(userId, eventId)
+	err := rt.EventService.RemoveAttendance(userID, eventID)
 	if err != nil {
 		ErrorResponse(w, http.StatusBadRequest, "bad request: "+err.Error())
 		return
@@ -271,10 +270,10 @@ func (rt *Router) UnregisterFromEventHandler(w http.ResponseWriter, r *http.Requ
 }
 
 func (rt *Router) RegisterForEventHandler(w http.ResponseWriter, r *http.Request) {
-	eventId := chi.URLParam(r, "id")
-	userId := getUserId(r)
+	eventID := chi.URLParam(r, "id")
+	userID := getUserID(r)
 
-	err := rt.EventService.RegisterAttendance(userId, eventId)
+	err := rt.EventService.RegisterAttendance(userID, eventID)
 	if err != nil {
 		ErrorResponse(w, http.StatusBadRequest, "bad request: "+err.Error())
 		return
@@ -283,19 +282,19 @@ func (rt *Router) RegisterForEventHandler(w http.ResponseWriter, r *http.Request
 }
 
 func (rt *Router) MyEventsHandler(w http.ResponseWriter, r *http.Request) {
-	userId := getUserId(r)
-	if userId == "" {
+	userID := getUserID(r)
+	if userID == "" {
 		ErrorResponse(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
-	hosting, err := rt.EventService.GetHostingEvents(userId, nil)
+	hosting, err := rt.EventService.GetHostingEvents(userID, nil)
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, "failed to get hosting events: "+err.Error())
 		return
 	}
 
-	attending, err := rt.EventService.GetAttendingEvents(userId, nil)
+	attending, err := rt.EventService.GetAttendingEvents(userID, nil)
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, "failed to get attending events: "+err.Error())
 		return
@@ -318,21 +317,21 @@ func (rt *Router) MyEventsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rt *Router) DeleteEventHandler(w http.ResponseWriter, r *http.Request) {
-	eventId := chi.URLParam(r, "id")
-	userId := getUserId(r)
+	eventID := chi.URLParam(r, "id")
+	userID := getUserID(r)
 
-	eventData, err := rt.EventService.GetEventByID(eventId)
+	eventData, err := rt.EventService.GetEventByID(eventID)
 	if err != nil {
 		ErrorResponse(w, http.StatusNotFound, "event not found")
 		return
 	}
 
-	if eventData.OrganizerID != userId {
+	if eventData.OrganizerID != userID {
 		ErrorResponse(w, http.StatusForbidden, "you can only delete your own events")
 		return
 	}
 
-	err = rt.EventService.DeleteEvent(eventId)
+	err = rt.EventService.DeleteEvent(eventID)
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, "failed to delete event: "+err.Error())
 		return
@@ -349,10 +348,10 @@ func (rt *Router) NotFoundHandler(w http.ResponseWriter, r *http.Request) {
 	ErrorResponse(w, http.StatusNotFound, "path not found")
 }
 
-func getUserId(r *http.Request) string {
-	userId, ok := r.Context().Value(ctxUserId).(string)
+func getUserID(r *http.Request) string {
+	userID, ok := r.Context().Value(ctxUserID).(string)
 	if !ok {
 		return ""
 	}
-	return userId
+	return userID
 }

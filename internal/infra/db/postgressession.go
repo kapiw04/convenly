@@ -23,38 +23,38 @@ func (p *PostgresSessionRepo) Create(email string) (id string, err error) {
 		return "", err
 	}
 
-	sessionId := generateSessionId()
-	userId := user.UUID
-	_, err = p.DB.Exec(query, userId, sessionId)
+	sessionID := generateSessionID()
+	userID := user.UUID
+	_, err = p.DB.Exec(query, userID, sessionID)
 	if err != nil {
 		return "", err
 	}
 
-	return sessionId, nil
+	return sessionID, nil
 }
 
-func (p *PostgresSessionRepo) Delete(sessionId string) error {
+func (p *PostgresSessionRepo) Delete(sessionID string) error {
 	query := "DELETE FROM sessions WHERE session_id = $1"
-	_, err := p.DB.Exec(query, sessionId)
+	_, err := p.DB.Exec(query, sessionID)
 	return err
 }
 
-func (p *PostgresSessionRepo) Get(sessionId string) (user.User, error) {
+func (p *PostgresSessionRepo) Get(sessionID string) (user.User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 	query := "SELECT user_id FROM sessions WHERE sessions.session_id = $1"
-	rows, err := p.DB.QueryContext(ctx, query, sessionId)
+	rows, err := p.DB.QueryContext(ctx, query, sessionID)
 
 	if err != nil {
 		return user.User{}, err
 	}
-	var userId string
+	var userID string
 
 	rows.Next()
-	if err := rows.Scan(&userId); err != nil {
+	if err := rows.Scan(&userID); err != nil {
 		return user.User{}, err
 	}
-	user, err := p.UserRepo.FindByUUID(userId)
+	user, err := p.UserRepo.FindByUUID(userID)
 	return *user, err
 }
 
@@ -64,7 +64,7 @@ func NewPostgresSessionRepo(db *sql.DB, userRepo user.UserRepo) user.SessionRepo
 	return &PostgresSessionRepo{DB: db, UserRepo: userRepo}
 }
 
-func generateSessionId() string {
+func generateSessionID() string {
 	id := make([]byte, 32)
 
 	_, err := io.ReadFull(rand.Reader, id)
