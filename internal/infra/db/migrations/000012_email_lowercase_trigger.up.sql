@@ -1,0 +1,12 @@
+CREATE OR REPLACE FUNCTION normalize_email()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.email = LOWER(TRIM(NEW.email));
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER users_email_lowercase
+  BEFORE INSERT OR UPDATE ON users
+  FOR EACH ROW
+  EXECUTE FUNCTION normalize_email();

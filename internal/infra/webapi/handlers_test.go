@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/kapiw04/convenly/internal/app"
 	mock_security "github.com/kapiw04/convenly/internal/domain/security/mocks"
+	"github.com/kapiw04/convenly/internal/domain/user"
 	mock_user "github.com/kapiw04/convenly/internal/domain/user/mocks"
 	"github.com/kapiw04/convenly/internal/infra/webapi"
 	"github.com/stretchr/testify/assert"
@@ -35,7 +36,7 @@ func setupServer(t *testing.T, srvc *app.UserService) *httptest.Server {
 	t.Helper()
 	mux := chi.NewRouter()
 	rt := &webapi.Router{UserService: srvc, Handler: mux}
-	mux.Post("/register", rt.RegisterHandler)
+	mux.Post("/register", rt.RegisterUserHandler)
 	srv := httptest.NewServer(rt.Handler)
 	t.Cleanup(srv.Close)
 	return srv
@@ -104,20 +105,26 @@ func TestRegister_MissingFields(t *testing.T) {
 
 func TestRegister_InvalidEmail(t *testing.T) {
 	ctrl := setupMockController(t)
-	mockRepo, _, _, mockSvc := setupMockService(t, ctrl)
+	mockRepo, _, mockHasher, mockSvc := setupMockService(t, ctrl)
 
 	mockRepo.
 		EXPECT().
 		Save(gomock.Any()).
-		Return(nil).
-		Times(0)
+		Return(user.ErrInvalidEmailFormat).
+		Times(1)
+
+	mockHasher.
+		EXPECT().
+		Hash("Secret123!").
+		Return("hashedpassword", nil).
+		Times(1)
 
 	srv := setupServer(t, mockSvc)
 
 	body := `{"name":"Alice","email":"not-an-email","password":"Secret123!"}`
 	res, err := http.Post(srv.URL+"/register", "application/json", strings.NewReader(body))
 	assert.NoError(t, err)
-	assert.Equal(t, res.StatusCode, http.StatusBadRequest)
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
 }
 
 func TestRegister_WeakPassword(t *testing.T) {
@@ -135,7 +142,7 @@ func TestRegister_WeakPassword(t *testing.T) {
 	body := `{"name":"Alice","email":"alice@example.com","password":"password"}`
 	res, err := http.Post(srv.URL+"/register", "application/json", strings.NewReader(body))
 	assert.NoError(t, err)
-	assert.Equal(t, res.StatusCode, http.StatusBadRequest)
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
 }
 
 func TestRegister_PasswordTooShort(t *testing.T) {
@@ -153,7 +160,7 @@ func TestRegister_PasswordTooShort(t *testing.T) {
 	body := `{"name":"Alice","email":"alice@example.com","password":"Sec1!"}`
 	res, err := http.Post(srv.URL+"/register", "application/json", strings.NewReader(body))
 	assert.NoError(t, err)
-	assert.Equal(t, res.StatusCode, http.StatusBadRequest)
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
 }
 
 func TestRegister_PasswordTooLong(t *testing.T) {
@@ -172,4 +179,76 @@ func TestRegister_PasswordTooLong(t *testing.T) {
 	res, err := http.Post(srv.URL+"/register", "application/json", strings.NewReader(body))
 	assert.NoError(t, err)
 	assert.Equal(t, res.StatusCode, http.StatusBadRequest)
+}
+
+func TestRegister_UsernameTooShort(t *testing.T) {
+	ctrl := setupMockController(t)
+	mockRepo, _, mockHasher, mockSvc := setupMockService(t, ctrl)
+
+	mockHasher.
+		EXPECT().
+		Hash(gomock.Any()).
+		Return("hashed", nil).
+		Times(1)
+
+	mockRepo.
+		EXPECT().
+		Save(gomock.Any()).
+		Return(user.ErrUsernameTooShort).
+		Times(1)
+
+	srv := setupServer(t, mockSvc)
+
+	body := `{"name":"Bob","email":"bob@example.com","password":"Secret123!"}`
+	res, err := http.Post(srv.URL+"/register", "application/json", strings.NewReader(body))
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+}
+
+func TestRegister_UsernameExactlyFiveChars(t *testing.T) {
+	ctrl := setupMockController(t)
+	mockRepo, _, mockHasher, mockSvc := setupMockService(t, ctrl)
+
+	mockHasher.
+		EXPECT().
+		Hash(gomock.Any()).
+		Return("hashed", nil).
+		Times(1)
+
+	mockRepo.
+		EXPECT().
+		Save(gomock.Any()).
+		Return(nil).
+		Times(1)
+
+	srv := setupServer(t, mockSvc)
+
+	body := `{"name":"Bobby","email":"bobby@example.com","password":"Secret123!"}`
+	res, err := http.Post(srv.URL+"/register", "application/json", strings.NewReader(body))
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, res.StatusCode)
+}
+
+func TestRegister_UsernameFourChars(t *testing.T) {
+	ctrl := setupMockController(t)
+	mockRepo, _, mockHasher, mockSvc := setupMockService(t, ctrl)
+
+	mockHasher.
+		EXPECT().
+		Hash(gomock.Any()).
+		Return("hashed", nil).
+		Times(1)
+
+	mockRepo.
+		EXPECT().
+		Save(gomock.Any()).
+		Return(user.ErrUsernameTooShort).
+		Times(1)
+
+	srv := setupServer(t, mockSvc)
+
+	body := `{"name":"John","email":"john@example.com","password":"Secret123!"}`
+	res, err := http.Post(srv.URL+"/register", "application/json", strings.NewReader(body))
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
 }

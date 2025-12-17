@@ -105,7 +105,7 @@ func TestCreateEvent_NotHost(t *testing.T) {
 	sqlDb, userSrvc, _, router := setupAllServices(t)
 
 	WithTx(t, sqlDb, func(t *testing.T, tx *sql.Tx) {
-		err := userSrvc.Register("Bob", "bob@example.com", "Secret123!")
+		err := userSrvc.Register("Bobby", "bob@example.com", "Secret123!")
 		require.NoError(t, err)
 
 		sessionID, err := userSrvc.Login("bob@example.com", "Secret123!")
@@ -244,7 +244,7 @@ func TestCreateEvent_NonExistentTag(t *testing.T) {
 
 func registerAndPromoteHost(t *testing.T, userSrvc *app.UserService, email, password string) {
 	t.Helper()
-	err := userSrvc.Register("Bob", email, password)
+	err := userSrvc.Register("Bobby", email, password)
 	require.NoError(t, err)
 	user, err := userSrvc.GetByEmail(email)
 	require.NoError(t, err)

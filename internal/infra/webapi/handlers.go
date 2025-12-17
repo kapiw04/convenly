@@ -11,9 +11,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/kapiw04/convenly/internal/domain/event"
+	"github.com/kapiw04/convenly/internal/domain/user"
 )
 
-func (rt *Router) RegisterHandler(w http.ResponseWriter, r *http.Request) {
+func (rt *Router) RegisterUserHandler(w http.ResponseWriter, r *http.Request) {
 	d := json.NewDecoder(r.Body)
 	var registerRequest RegisterRequest
 	err := d.Decode(&registerRequest)
@@ -21,14 +22,17 @@ func (rt *Router) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		ErrorResponse(w, http.StatusBadRequest, "bad request: "+err.Error())
 		return
 	}
-	if registerRequest.Name == "" || registerRequest.Email == "" || registerRequest.Password == "" {
-		ErrorResponse(w, http.StatusBadRequest, "empty fields")
-		return
-	}
 
 	err = rt.UserService.Register(registerRequest.Name, registerRequest.Email, registerRequest.Password)
 	if err != nil {
-		ErrorResponse(w, http.StatusBadRequest, "bad request: "+err.Error())
+		slog.Error("Error: ", "err", err)
+		switch err {
+		case user.ErrInvalidEmailFormat, user.ErrUsernameTooShort, user.ErrPasswordTooLong, user.ErrPasswordTooWeak, user.ErrPasswordTooShort, user.ErrUserExists:
+			ErrorResponse(w, http.StatusBadRequest, "bad request: "+err.Error())
+		default:
+			ErrorResponse(w, http.StatusInternalServerError, err.Error())
+		}
+
 		return
 	}
 	JSONResponse(w, http.StatusCreated, map[string]string{"status": "ok"})

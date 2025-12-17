@@ -35,6 +35,17 @@ func TestUserService_Register_InvalidEmail(t *testing.T) {
 	userRepo := mock_user.NewMockUserRepo(ctrl)
 	sessionRepo := mock_user.NewMockSessionRepo(ctrl)
 	hasher := mock_security.NewMockHasher(ctrl)
+	userRepo.
+		EXPECT().
+		Save(gomock.Any()).
+		Return(user.ErrInvalidEmailFormat).
+		Times(1)
+
+	hasher.
+		EXPECT().
+		Hash("Password123!").
+		Return("hashedpassword", nil).
+		Times(1)
 
 	svc := NewUserService(userRepo, sessionRepo, hasher)
 	err := svc.Register("TestUser", "invalid-email", "Password123!")

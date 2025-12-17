@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"testing"
 
+	"github.com/kapiw04/convenly/internal/domain/user"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -41,12 +42,12 @@ func TestUserRepo_RegisterDuplicateEmail(t *testing.T) {
 		require.NoError(t, err)
 
 		err = srvc.Register(
-			"Bob",
+			"Bobby",
 			"alice@example.com",
 			"AnotherSecret456!",
 		)
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "duplicate")
+		assert.Equal(t, user.ErrUserExists, err)
 	})
 }
 
@@ -64,12 +65,12 @@ func TestUserRepo_RegisterCaseInsensitiveDuplicateEmail(t *testing.T) {
 		require.NoError(t, err)
 
 		err = srvc.Register(
-			"Bob",
+			"Bobby",
 			"ALICE@EXAMPLE.COM",
 			"AnotherSecret456!",
 		)
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "duplicate")
+		assert.Equal(t, user.ErrUserExists, err)
 
 		err = srvc.Register(
 			"Charlie",
@@ -77,7 +78,7 @@ func TestUserRepo_RegisterCaseInsensitiveDuplicateEmail(t *testing.T) {
 			"YetAnother789!",
 		)
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "duplicate")
+		assert.Equal(t, user.ErrUserExists, err)
 	})
 }
 
@@ -100,11 +101,59 @@ func TestUserRepo_RegisterEmailWithWhitespace(t *testing.T) {
 		assert.Equal(t, u.Name, "Alice")
 
 		err = srvc.Register(
-			"Bob",
+			"Bobby",
 			" alice@example.com ",
 			"AnotherSecret456!",
 		)
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "duplicate")
+		assert.Equal(t, user.ErrUserExists, err)
+	})
+}
+
+func TestUserRepo_RegisterUsernameTooShort(t *testing.T) {
+	sqlDb := setupDb(t)
+	srvc := setupUserService(t, sqlDb)
+
+	WithTx(t, sqlDb, func(t *testing.T, tx *sql.Tx) {
+		err := srvc.Register(
+			"Bob",
+			"bob@example.com",
+			"Secret123!",
+		)
+		assert.Error(t, err)
+		assert.Equal(t, user.ErrUsernameTooShort, err)
+	})
+}
+
+func TestUserRepo_RegisterUsernameFourChars(t *testing.T) {
+	sqlDb := setupDb(t)
+	srvc := setupUserService(t, sqlDb)
+
+	WithTx(t, sqlDb, func(t *testing.T, tx *sql.Tx) {
+		err := srvc.Register(
+			"John",
+			"john@example.com",
+			"Secret123!",
+		)
+		assert.Error(t, err)
+		assert.Equal(t, user.ErrUsernameTooShort, err)
+	})
+}
+
+func TestUserRepo_RegisterUsernameExactlyFiveChars(t *testing.T) {
+	sqlDb := setupDb(t)
+	srvc := setupUserService(t, sqlDb)
+
+	WithTx(t, sqlDb, func(t *testing.T, tx *sql.Tx) {
+		err := srvc.Register(
+			"Bobby",
+			"bobby@example.com",
+			"Secret123!",
+		)
+		require.NoError(t, err)
+
+		u, err := srvc.GetByEmail("bobby@example.com")
+		assert.NoError(t, err)
+		assert.Equal(t, "Bobby", u.Name)
 	})
 }

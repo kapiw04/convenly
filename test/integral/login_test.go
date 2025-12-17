@@ -23,7 +23,7 @@ func TestLogin_Success(t *testing.T) {
 
 	WithTx(t, sqlDb, func(t *testing.T, tx *sql.Tx) {
 		err := userSrvc.Register(
-			"Bob",
+			"Bobby",
 			"bob@example.com",
 			"Secret123!",
 		)
@@ -58,7 +58,7 @@ func TestLogin_InvalidPassword(t *testing.T) {
 
 	WithTx(t, sqlDb, func(t *testing.T, tx *sql.Tx) {
 		err := userSrvc.Register(
-			"Bob",
+			"Bobby",
 			"bob@example.com",
 			"Secret123!",
 		)
@@ -175,7 +175,7 @@ func TestLogin_CaseInsensitiveEmail(t *testing.T) {
 
 	WithTx(t, sqlDb, func(t *testing.T, tx *sql.Tx) {
 		err := userSrvc.Register(
-			"Bob",
+			"Bobby",
 			"bob@example.com",
 			"Secret123!",
 		)
@@ -210,7 +210,7 @@ func TestLogin_EmailWithWhitespace(t *testing.T) {
 
 	WithTx(t, sqlDb, func(t *testing.T, tx *sql.Tx) {
 		err := userSrvc.Register(
-			"Bob",
+			"Bobby",
 			"bob@example.com",
 			"Secret123!",
 		)
@@ -269,7 +269,7 @@ func TestLogin_SessionCookieIsSet(t *testing.T) {
 	router := webapi.NewRouter(userSrvc, eventSrvc)
 
 	WithTx(t, sqlDb, func(t *testing.T, tx *sql.Tx) {
-		err := userSrvc.Register("Bob", "bob@example.com", "Secret123!")
+		err := userSrvc.Register("Bobby", "bob@example.com", "Secret123!")
 		require.NoError(t, err)
 
 		loginReq := webapi.LoginRequest{

@@ -94,9 +94,9 @@ tasks:
       - go run ./scripts/clean/main.go
 
   "db:generate":
-    desc: Generate test data (10000 events by default)
+    desc: Generate test data in the database
     cmds:
-      - go run ./scripts/benchmark/main.go -events=10000
+      - go run ./scripts/benchmark/main.go -traffic -users 200 -events 1000 -registrations 10000 -concurrency 20
 
   "db:bench":
     desc: Run database benchmarks with memory stats

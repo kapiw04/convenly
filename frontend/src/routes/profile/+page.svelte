@@ -6,7 +6,9 @@
 	import * as Avatar from '$lib/components/ui/avatar';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Separator } from '$lib/components/ui/separator';
+	import { MapPicker } from '$lib/components/ui/map-picker';
 	import { user, type User } from '$lib/stores/user';
+	import { userLocation } from '$lib/stores/location';
 
 	import {
 		IconMail,
@@ -15,7 +17,8 @@
 		IconCalendarEvent,
 		IconTicket,
 		IconAlertCircle,
-		IconSpeakerphone
+		IconSpeakerphone,
+		IconMapPin
 	} from '@tabler/icons-svelte';
 
 	const api = import.meta.env.VITE_API_URL;
@@ -24,6 +27,12 @@
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 	let loggingOut = $state(false);
+	let currentLocation = $state($userLocation);
+
+	function handleLocationChange(lat: number, lng: number) {
+		currentLocation = { latitude: lat, longitude: lng };
+		userLocation.setCoords(lat, lng);
+	}
 
 	const roleNames: Record<number, string> = {
 		0: 'Attendee',
@@ -192,6 +201,23 @@
 								<p class="text-sm text-muted-foreground">Account Role</p>
 								<p class="font-medium">{roleNames[userProfile.role] || 'Unknown'}</p>
 							</div>
+						</div>
+						<div class="p-3 rounded-lg bg-muted/50">
+							<div class="flex items-center gap-3 mb-3">
+								<div class="p-2 rounded-md bg-primary/10">
+									<IconMapPin class="size-5 text-primary" />
+								</div>
+								<div>
+									<p class="text-sm text-muted-foreground">Your Location</p>
+									<p class="text-xs text-muted-foreground">Click on the map to set your location</p>
+								</div>
+							</div>
+							<MapPicker
+								latitude={currentLocation.latitude}
+								longitude={currentLocation.longitude}
+								onLocationChange={handleLocationChange}
+								height="250px"
+							/>
 						</div>
 					</div>
 				</Card.Content>

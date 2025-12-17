@@ -3,15 +3,45 @@ package db
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/kapiw04/convenly/internal/domain/user"
+	"github.com/lib/pq"
 )
 
 type PostgresUserRepo struct {
 	DB *sql.DB
 }
 
+func mapPgErr(err error) error {
+	var pqe *pq.Error
+	if !errors.As(err, &pqe) {
+		return err
+	}
+
+	switch string(pqe.Code) {
+	case "23505": // unique_violation
+		switch pqe.Constraint {
+		case "users_email_key", "users_email_lower_key":
+			return user.ErrUserExists
+		default:
+			return err
+		}
+
+	case "23514": // check_violation
+		switch pqe.Constraint {
+		case "users_email_format":
+			return user.ErrInvalidEmailFormat
+		case "users_name_len":
+			return user.ErrUsernameTooShort
+		default:
+			return err
+		}
+	}
+
+	return err
+}
 func (r *PostgresUserRepo) FindByEmail(email string) (*user.User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
@@ -70,7 +100,7 @@ func (r *PostgresUserRepo) Update(user *user.User) error {
 	email := string(user.Email)
 	query := "UPDATE users SET name=$1, email=$2, password_hash=$3, role=$4 WHERE user_id=$5"
 	_, err := r.DB.Exec(query, user.Name, email, user.PasswordHash, user.Role, user.UUID)
-	return err
+	return mapPgErr(err)
 }
 
 func NewPostgresUserRepo(db *sql.DB) user.UserRepo {
@@ -78,10 +108,9 @@ func NewPostgresUserRepo(db *sql.DB) user.UserRepo {
 }
 
 func (r *PostgresUserRepo) Save(user *user.User) error {
-	email := string(user.Email)
-	query := "INSERT INTO users (user_id, name, email, password_hash, role) VALUES ($1, $2, $3, $4, $5)"
-	_, err := r.DB.Exec(query, user.UUID, user.Name, email, user.PasswordHash, user.Role)
-	return err
+	query := "INSERT INTO users (name, email, password_hash, role) VALUES ($1, $2, $3, $4)"
+	_, err := r.DB.Exec(query, user.Name, user.Email, user.PasswordHash, user.Role)
+	return mapPgErr(err)
 }
 
 var _ user.UserRepo = (*PostgresUserRepo)(nil)

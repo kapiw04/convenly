@@ -55,7 +55,7 @@ func createBenchmarkUser(b *testing.B, userRepo user.UserRepo) string {
 	u := &user.User{
 		UUID:         id,
 		Name:         fmt.Sprintf("bench_%s", id.String()[:8]),
-		Email:        user.Email(fmt.Sprintf("bench_%s@test.com", id.String()[:8])),
+		Email:        fmt.Sprintf("bench_%s@test.com", id.String()[:8]),
 		PasswordHash: "hashedpass",
 		Role:         user.ATTENDEE,
 	}

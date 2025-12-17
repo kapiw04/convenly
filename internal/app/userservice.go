@@ -3,7 +3,6 @@ package app
 import (
 	"log/slog"
 
-	"github.com/google/uuid"
 	"github.com/kapiw04/convenly/internal/domain/security"
 	"github.com/kapiw04/convenly/internal/domain/user"
 )
@@ -19,11 +18,6 @@ func NewUserService(repo user.UserRepo, sessionRepo user.SessionRepo, h security
 }
 
 func (s *UserService) Register(name string, rawEmail string, rawPassword string) error {
-	userUUID := uuid.New()
-	email, err := user.NewEmail(rawEmail)
-	if err != nil {
-		return err
-	}
 	password, err := user.NewPassword(rawPassword)
 	if err != nil {
 		return err
@@ -34,12 +28,9 @@ func (s *UserService) Register(name string, rawEmail string, rawPassword string)
 		return err
 	}
 
-	slog.Info("Registering user with id: %s, name: %s, rawEmail: %s", "id", userUUID, "name", name, "email", string(email))
-
 	err = s.userRepo.Save(&user.User{
-		UUID:         userUUID,
 		Name:         name,
-		Email:        email,
+		Email:        rawEmail,
 		PasswordHash: passwordHash,
 		Role:         user.ATTENDEE,
 	})
@@ -47,7 +38,6 @@ func (s *UserService) Register(name string, rawEmail string, rawPassword string)
 		slog.Error("Failed to save user: %v", "err", err)
 		return err
 	}
-	slog.Info("User registered successfully with UUID: %s", "uuid", userUUID)
 	return nil
 }
 

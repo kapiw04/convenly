@@ -38,7 +38,7 @@ func NewRouter(userService *app.UserService, eventService *app.EventService) *Ro
 	}))
 
 	r.Get("/api/health", router.HealthHandler)
-	r.Post("/api/register", router.RegisterHandler)
+	r.Post("/api/register", router.RegisterUserHandler)
 	r.Post("/api/login", router.LoginHandler)
 	r.Get("/api/events", router.ListEventsHandler)
 	r.NotFound(router.NotFoundHandler)

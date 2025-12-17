@@ -126,7 +126,7 @@ func TestAttendance_MultipleAttendees(t *testing.T) {
 		eventID := events[0].EventID
 
 		attendee1SessionID := RegisterAndLoginUser(t, userSrvc, "Alice", "alice@example.com", "Secret123!")
-		attendee2SessionID := RegisterAndLoginUser(t, userSrvc, "Bob", "bob@example.com", "Secret123!")
+		attendee2SessionID := RegisterAndLoginUser(t, userSrvc, "Bobby", "bob@example.com", "Secret123!")
 
 		req1 := httptest.NewRequest(http.MethodPost, "/api/events/"+eventID+"/register", nil)
 		req1.AddCookie(&http.Cookie{Name: "session-id", Value: attendee1SessionID})
