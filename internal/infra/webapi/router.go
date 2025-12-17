@@ -31,10 +31,10 @@ func NewRouter(userService *app.UserService, eventService *app.EventService) *Ro
 		Handler:      r,
 	}
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:5173", "http://localhost:5174"},
 		AllowCredentials: true,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Content-Type", "Authorization"},
+		AllowOriginFunc:  func(r *http.Request, origin string) bool { return true },
 	}))
 
 	r.Get("/api/health", router.HealthHandler)

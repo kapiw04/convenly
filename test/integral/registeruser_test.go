@@ -28,6 +28,45 @@ func TestUserRepo_SaveAndGet(t *testing.T) {
 	})
 }
 
+func TestUserRepo_RegisterGeneratesUUID(t *testing.T) {
+	sqlDb := setupDb(t)
+	srvc := setupUserService(t, sqlDb)
+	WithTx(t, sqlDb, func(t *testing.T, tx *sql.Tx) {
+		err := srvc.Register(
+			"TestUser",
+			"testuser@example.com",
+			"Secret123!",
+		)
+		require.NoError(t, err)
+
+		u, err := srvc.GetByEmail("testuser@example.com")
+		require.NoError(t, err)
+
+		assert.NotEqual(t, [16]byte{}, u.UUID)
+		assert.NotEmpty(t, u.UUID.String())
+
+		uByID, err := srvc.GetByUUID(u.UUID.String())
+		require.NoError(t, err)
+		assert.Equal(t, u.UUID, uByID.UUID)
+		assert.Equal(t, "testuser@example.com", string(uByID.Email))
+	})
+}
+
+func TestUserRepo_UserIDHasDefaultValue(t *testing.T) {
+	sqlDb := setupDb(t)
+	WithTx(t, sqlDb, func(t *testing.T, tx *sql.Tx) {
+		var columnDefault sql.NullString
+		err := sqlDb.QueryRow(`
+			SELECT column_default 
+			FROM information_schema.columns 
+			WHERE table_name = 'users' AND column_name = 'user_id'
+		`).Scan(&columnDefault)
+		require.NoError(t, err)
+		require.True(t, columnDefault.Valid, "user_id column should have a DEFAULT constraint")
+		assert.Contains(t, columnDefault.String, "gen_random_uuid", "user_id DEFAULT should use gen_random_uuid()")
+	})
+}
+
 func TestUserRepo_RegisterDuplicateEmail(t *testing.T) {
 	sqlDb := setupDb(t)
 	srvc := setupUserService(t, sqlDb)

@@ -1,6 +1,9 @@
 package user
 
-import "regexp"
+import (
+	"regexp"
+	"strings"
+)
 
 const MaxPasswordLength = 20
 const MinPasswordLength = 8
@@ -8,6 +11,7 @@ const MinPasswordLength = 8
 type Password string
 
 func NewPassword(raw string) (Password, error) {
+	raw = strings.TrimSpace(raw)
 	err := ValidateLength(raw)
 	if err != nil {
 		return "", err

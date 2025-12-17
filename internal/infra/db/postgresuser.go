@@ -108,8 +108,8 @@ func NewPostgresUserRepo(db *sql.DB) user.UserRepo {
 }
 
 func (r *PostgresUserRepo) Save(user *user.User) error {
-	query := "INSERT INTO users (name, email, password_hash, role) VALUES ($1, $2, $3, $4)"
-	_, err := r.DB.Exec(query, user.Name, user.Email, user.PasswordHash, user.Role)
+	query := "INSERT INTO users (name, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING user_id"
+	err := r.DB.QueryRow(query, user.Name, user.Email, user.PasswordHash, user.Role).Scan(&user.UUID)
 	return mapPgErr(err)
 }
 

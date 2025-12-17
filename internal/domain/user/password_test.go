@@ -77,3 +77,21 @@ func TestValidateStrength_AllSpecialChars(t *testing.T) {
 		require.NoError(t, err, "special char %s should be valid", char)
 	}
 }
+
+func TestNewPassword_TrimsWhitespace(t *testing.T) {
+	password, err := NewPassword("  Secret123!  ")
+	require.NoError(t, err)
+	require.Equal(t, Password("Secret123!"), password)
+}
+
+func TestNewPassword_LeadingWhitespace(t *testing.T) {
+	password, err := NewPassword("  Secret123!")
+	require.NoError(t, err)
+	require.Equal(t, Password("Secret123!"), password)
+}
+
+func TestNewPassword_TrailingWhitespace(t *testing.T) {
+	password, err := NewPassword("Secret123!  ")
+	require.NoError(t, err)
+	require.Equal(t, Password("Secret123!"), password)
+}
